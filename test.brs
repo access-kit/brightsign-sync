@@ -1,14 +1,16 @@
 LIBRARY "syncPlayer.brs"
 
 print "---------------------------- Brightsign Sync Looper ----------------------------"
+print ""
 
-url = "http://samwolk.info/reneSeminar/index.php"
-password = "FlatwingHollanderWhitney555"
-id = "rene"
-mediaPath = "rene_film.mov"
+print "Loading options from config.json..."
+config = ParseJSON(ReadAsciiFile("config.json"))
+print config
+print ""
+
 
 print "Initializing seamless synchronized looper..."
-player = createSyncPlayer(id,mediaPath,url,password)
+player = createSyncPlayer(config)
 
 Print "Sleeping for 1s..."
 sleep(2000)

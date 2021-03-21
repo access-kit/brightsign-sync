@@ -1,17 +1,17 @@
 LIBRARY "time.brs"
 
-function createSyncPlayer( id as String, videopath as String, url as String, password as String) as Object
+function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
-  player.id = id
-  player.videopath = videopath
+  player.id = _config.id
+  player.videopath = _config.filepath
 
 
 
   ' Set up the sync API communications
-  player.url = url
-  player.password = password
+  player.url = _config.syncURL
+  player.password = _config.password
   player.request = createObject("roUrlTransfer")
-  player.request.setUrl(url)
+  player.request.setUrl(player.url)
   player.responsePort = createObject("roMessagePort")
   player.request.setPort(player.responsePort)
 
@@ -29,7 +29,7 @@ function createSyncPlayer( id as String, videopath as String, url as String, pas
   player.mode.setMode("auto")
 
   ' Create a clock and sync it
-  player.clock = createClock(url,password)
+  player.clock = createClock(player.url,player.password)
 
 
   ' Video port for events
@@ -41,7 +41,7 @@ function createSyncPlayer( id as String, videopath as String, url as String, pas
   player.video.setViewMode(1) ' centered and letterboxed
   player.video.setVolume(15) ' see config stuff in master from zachpoff
   Print "Preloading video..."
-  print "Preload status:", player.video.preloadFile(videopath)
+  print "Preload status:", player.video.preloadFile(player.videopath)
   ok = player.video.addEvent(1, player.video.getDuration() - 20000) ' Throw an event for resynchronization 20s before film end
 
 
