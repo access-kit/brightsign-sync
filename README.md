@@ -18,9 +18,6 @@ Place the video file (H.264 .mp4/.mov) onto the SD card.  Then edit `config.json
 
 ## Time API
 
-
-## Server Side Protocol
-
 The API currently works as follows, but will likely be changed
 
 The media player posts two different tables to the server.
