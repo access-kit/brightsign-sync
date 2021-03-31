@@ -11,7 +11,7 @@ function createSyncPlayer(_config as Object) as Object
   player.url = _config.syncURL
   player.password = _config.password
   player.request = createObject("roUrlTransfer")
-  player.request.setUrl(player.url)
+  player.request.setUrl(player.url+"/api/work/"+player.id+"/timestamp")
   player.responsePort = createObject("roMessagePort")
   player.request.setPort(player.responsePort)
 
@@ -56,8 +56,7 @@ end function
 
 function submitTimestamp() as String
   postString = "password="+m.request.escape(m.password)+"&"
-  postString = postString+"timestamp="+m.request.escape("let timestamp="+m.clock.synchronizeTimestamp(m.lastCycleStartedAt))+"&"
-  postString = postString+"timestampJSON="+m.request.escape("{"+chr(34)+"timestamp"+chr(34)+":"+m.clock.synchronizeTimestamp(m.lastCycleStartedAt)+"}")
+  postString = postString+"lastTimestamp="+m.request.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.request.asyncPostFromString(postString)
   response = m.responsePort.waitMessage(0)
   response = response.getString()

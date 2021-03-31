@@ -22,7 +22,7 @@ function createClock(_syncURL as String, _password as String) as Object
 
   ' Give it a sync destination and an initial offset
   timer.request = createObject("roUrlTransfer")
-  timer.request.setUrl(_syncURL)
+  timer.apiEndpoint = _syncURL+"/api/sync"
   timer.responsePort = createObject("roMessagePort")
   timer.request.setPort(timer.responsePort)
   timer.password = _password
@@ -92,27 +92,53 @@ end function
 ' Submit a timestamp to a server
 ' Use the response to calculate the time difference
 function calculateOffset() as Integer
-  postString = "password="+m.password+"&"+"localTimeSentAt="+m.getEpochAsMSString()
-  m.request.asyncPostFromString(postString)
+  m.request.setUrl(m.apiEndpoint+"?reqSentAt="+m.getEpochAsMSString())
+  m.request.asyncGetToString()
   ' TODO: MAKE ASYNC, WAIT BLOCKS!
-  response = m.responsePort.waitMessage(0)
-  responseReceivedAt = m.getEpochAsMSString()
-  response = response.getString()
-  stamps = response.tokenize("|")
-  voyageOutTime = m.getTimeDiff(stamps.getEntry(1),stamps.getEntry(0))
-  voyageBackTime = m.getTimeDiff(responseReceivedAt,stamps.getEntry(2))
+  res = m.responsePort.waitMessage(0)
+  resReceivedAt = m.getEpochAsMSString()
+  response = res.getString()
+  tokens = response.tokenize(chr(34)+"{},:")
+  reqSentAt = ""
+  reqReceivedAt = ""
+  resSentAt = ""
+  if (tokens[0] = "reqSentAt") then
+    reqSentAt = tokens[1]
+  else if (tokens[0] = "reqReceivedAt") then
+    reqReceivedAt = tokens[1]
+  else
+    resSentAt = tokens[1]
+  end if
+
+  if (tokens[2] = "reqSentAt") then
+    reqSentAt = tokens[3]
+  else if (tokens[2] = "reqReceivedAt") then
+    reqReceivedAt = tokens[3]
+  else
+    resSentAt = tokens[3]
+  end if
+
+  if (tokens[4] = "reqSentAt") then
+    reqSentAt = tokens[5]
+  else if (tokens[4] = "reqReceivedAt") then
+    reqReceivedAt = tokens[5]
+  else
+    resSentAt = tokens[5]
+  endif
+  voyageOutTime = m.getTimeDiff(reqReceivedAt,reqSentAt)
+  voyageBackTime = m.getTimeDiff(resReceivedAt,resSentAt)
   doubleLatency = voyageOutTime+voyageBackTime
   latency = int((voyageOutTime+voyageBackTime)/2)
   offset = voyageOutTime-latency
-  ' print " "
-  ' print "Local Time Sent:", stamps.getEntry(0)
-  ' print "Responsed Received:", responseReceivedAt
-  ' print "Total Time:",,m.getTimeDiff(responseReceivedAt,stamps.getEntry(0))
-  ' print "Server Receptiion Time:", stamps.getEntry(1)
-  ' print "Server Transmission Time:", stamps.getEntry(2)
-  ' print "One-way latency:", voyageOutTime
-  ' print "One-way latency:", voyageBackTime
-  ' print "Average latency:", latency
+  print " "
+  print "Local Time Sent:", reqReceivedAt
+  print "Response Received:", resReceivedAt
+  print "Total Time:",,m.getTimeDiff(resReceivedAt,reqSentAt)
+  print "Server Reception Time:", reqReceivedAt
+  print "Server Transmission Time:", resSentAt
+  print "One-way latency:", voyageOutTime
+  print "One-way latency:", voyageBackTime
+  print "Average latency:", latency
   return offset
 end function
 
