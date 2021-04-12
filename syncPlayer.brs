@@ -43,6 +43,15 @@ function createSyncPlayer(_config as Object) as Object
   Print "Preloading video..."
   print "Preload status:", player.video.preloadFile(player.videopath)
   ok = player.video.addEvent(1, player.video.getDuration() - 20000) ' Throw an event for resynchronization 20s before film end
+  player.duration = player.video.getDuration()-20
+
+  print "Updating duration on server..."
+  player.updateDurationRequest = createObject("roUrlTransfer")
+  player.updateDurationRequest.setUrl(player.url+"/api/work/"+player.id+"/duration")
+  updateDurationData = "password="+player.password+"&"
+  updateDurationData = updateDurationData+"duration="+player.duration.toStr()
+  player.updateDurationRequest.asyncPostFromString(updateDurationData)
+
 
 
 
