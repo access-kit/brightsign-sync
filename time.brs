@@ -125,20 +125,20 @@ function calculateOffset() as Integer
   else
     resSentAt = tokens[5]
   endif
-  voyageOutTime = m.getTimeDiff(reqReceivedAt,reqSentAt)
-  voyageBackTime = m.getTimeDiff(resReceivedAt,resSentAt)
-  doubleLatency = voyageOutTime+voyageBackTime
-  latency = int((voyageOutTime+voyageBackTime)/2)
-  offset = voyageOutTime-latency
+  'voyageOutTime = m.getTimeDiff(reqReceivedAt,reqSentAt)
+  'voyageBackTime = m.getTimeDiff(resReceivedAt,resSentAt)
+  'doubleLatency = voyageOutTime+voyageBackTime
+  'latency = int((voyageOutTime+voyageBackTime)/2)
+  'offset = voyageOutTime-latency
+
+  roundTripTime = m.getTimeDiff(resReceivedAt,reqSentAt)
+  serverPerfTime = m.getTimeDiff(resSentAt,reqReceivedAt)
+  transitTime = roundTripTime-serverPerfTime
+  latency = int(transitTime / 2)
+  offset = m.getTimeDiff(reqReceivedAt,reqSentAt)-latency
   print " "
-  print "Local Time Sent:", reqReceivedAt
-  print "Response Received:", resReceivedAt
-  print "Total Time:",,m.getTimeDiff(resReceivedAt,reqSentAt)
-  print "Server Reception Time:", reqReceivedAt
-  print "Server Transmission Time:", resSentAt
-  print "One-way latency:", voyageOutTime
-  print "One-way latency:", voyageBackTime
-  print "Average latency:", latency
+  print "Latency:", latency
+  print "Offset: ", offset
   return offset
 end function
 
@@ -153,7 +153,6 @@ function ntpSync() as void
     offset = m.calculateOffset()
     sum = sum + offset
     offsets.push(offset)
-    print "Server Time Offset: " , offset
   end for
   avgOffset = sum/offsets.count()
 
