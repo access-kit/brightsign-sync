@@ -8,7 +8,6 @@ config = ParseJSON(ReadAsciiFile("config.json"))
 print config
 print ""
 
-
 print "Initializing seamless synchronized looper..."
 player = createSyncPlayer(config)
 

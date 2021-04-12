@@ -67,7 +67,7 @@ function submitTimestamp() as String
   postString = "password="+m.request.escape(m.password)+"&"
   postString = postString+"lastTimestamp="+m.request.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.request.asyncPostFromString(postString)
-  response = m.responsePort.waitMessage(0)
+  response = m.responsePort.waitMessage(1000)
   response = response.getString()
   return response
 end function
@@ -82,7 +82,7 @@ function loop()
     print "New loop just started."
 
     ' wait until 20s before the end, then resynchronize to the server
-    while (m.video.getPlaybackPosition() < m.video.getDuration()-20000):
+    while (m.video.getPlaybackPosition() < m.video.getDuration()-25000):
       sleep(1) ' wait
     end while
     print "NTP sync beginning..."
