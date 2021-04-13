@@ -68,8 +68,12 @@ function submitTimestamp() as String
   postString = postString+"lastTimestamp="+m.request.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.request.asyncPostFromString(postString)
   response = m.responsePort.waitMessage(1000)
-  response = response.getString()
-  return response
+  if not response = invalid then
+    response = response.getString()
+    return response
+  else 
+    return "invalid"
+  end if
 end function
 
 function loop()
