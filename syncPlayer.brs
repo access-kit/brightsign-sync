@@ -100,7 +100,7 @@ function loop()
     print "NTP sync completed."
     
     while (m.video.getPlaybackPosition() < m.duration-1000):
-      m.hanldeUDP()
+      m.handleUDP()
     end while
     
     while (m.video.getPlaybackPosition() < m.duration):
@@ -119,10 +119,18 @@ function handleUDP()
     m.video.resume()
   else if msg="restart" then
     m.video.seek(0)
-  else if msg="seekforward" then
-    m.video.seek(m.video.getPlaybackPosition()+5000)
-  else if msg="seekbackward" then
-    m.video.seek(m.video.getPlaybackPosition()-5000)
+  else if msg="seek+" then
+    m.video.seek(m.video.getPlaybackPosition()+100)
+  else if msg="seek-" then
+    m.video.seek(m.video.getPlaybackPosition()-100)
+  else if msg="seek++" then
+    m.video.seek(m.video.getPlaybackPosition()+1000)
+  else if msg="seek--" then
+    m.video.seek(m.video.getPlaybackPosition()-1000)
+  else if msg="seek+++" then
+    m.video.seek(m.video.getPlaybackPosition()+10000)
+  else if msg="seek---" then
+    m.video.seek(m.video.getPlaybackPosition()-10000)
   else if msg="ff" then
     m.video.setPlaybackSpeed(2)
   else if msg="fff" then
