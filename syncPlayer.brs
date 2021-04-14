@@ -39,7 +39,7 @@ function createSyncPlayer(_config as Object) as Object
   ' Init the first copy of video
   player.video = createObject("roVideoPlayer")
   player.video.setPort(player.videoPort)
-  player.video.setViewMode(1) ' centered and letterboxed
+  player.video.setViewMode(0) 
   player.video.setVolume(15) ' see config stuff in master from zachpoff
   Print "Preloading video..."
   print "Preload status:", player.video.preloadFile(player.videopath)
@@ -57,7 +57,30 @@ function createSyncPlayer(_config as Object) as Object
   player.udpReceiver = createObject("roDatagramReceiver",_config.commandPort.toInt() )
   player.udpPort = createObject("roMessagePort") 
   player.udpReceiver.setPort(player.udpPort)
- 
+
+  print "Sleeping so that video dimensions can be parsed..."
+  sleep(1000)
+  player.width = player.video.getStreamInfo().videoWidth
+  player.height = player.video.getStreamInfo().videoHeight
+  player.aspectRatio = player.width / player.height
+  _window = ParseJSON(ReadAsciiFile("window.json"))
+  if not _window = invalid then
+    player.window = createObject("roRectangle", _window.x,_window.y,_window.w,_window.h)
+  else 
+    wFactor = 1920/player.width
+    hFactor = 1080/player.height
+    factor = hFactor
+    hOffset = 0
+    wOffset = ( 1920-factor*player.width )/2
+    if wFactor < hFactor then 
+      factor = wFactor
+      wOffset = 0
+      hOffset = ( 1080-factor*player.height )/2
+    end if
+    player.window = createObject("roRectangle",wOffset,hOffset, player.width * factor , player.height* factor )
+  end if
+  player.video.setRectangle(player.window)
+  
   return player
 end function
 
@@ -141,6 +164,55 @@ function handleUDP()
     m.video.setPlaybackSpeed(-8)
   else if msg="defaultspeed" then
     m.video.setPlaybackSpeed(1)
+  else if msg="stretchX" then 
+    m.window.setWidth(m.window.getWidth() + 6)
+    m.window.setX(m.window.getX()-3)
+    m.video.setRectangle(m.window)
+  else if msg="compressX" then 
+    m.window.setWidth(m.window.getWidth() - 6)
+    m.window.setX(m.window.getX()+3)
+    m.video.setRectangle(m.window)
+  else if msg="stretchY" then 
+    m.window.setHeight(m.window.getHeight() + 6)
+    m.window.setY(m.window.getY()-3)
+    m.video.setRectangle(m.window)
+  else if msg="compressY" then 
+    m.window.setHeight(m.window.getHeight() - 6)
+    m.window.setY(m.window.getY()+3)
+    m.video.setRectangle(m.window)
+  else if msg="enlarge" then 
+    m.window.setHeight(m.window.getHeight() + 6)
+    m.window.setY(m.window.getY()-3)
+    m.window.setWidth(m.window.getWidth() + 6*m.aspectRatio)
+    m.window.setX(m.window.getX()-3*m.aspectRatio)
+    m.video.setRectangle(m.window)
+  else if msg="shrink" then 
+    m.window.setHeight(m.window.getHeight() - 6)
+    m.window.setY(m.window.getY()+3)
+    m.window.setWidth(m.window.getWidth() - 6*m.aspectRatio)
+    m.window.setX(m.window.getX()+3*m.aspectRatio)
+    m.video.setRectangle(m.window)
+  else if msg="nudgeUp" then 
+    m.window.setY(m.window.getY() - 5)
+    m.video.setRectangle(m.window)
+  else if msg="nudgeDown" then 
+    m.window.setY(m.window.getY() + 5)
+    m.video.setRectangle(m.window)
+  else if msg="nudgeLeft" then 
+    m.window.setX(m.window.getX() - 5)
+    m.video.setRectangle(m.window)
+  else if msg="nudgeRight" then 
+    m.window.setX(m.window.getX() + 5)
+    m.video.setRectangle(m.window)
+  else if msg="saveWindow" then 
+    _window = createObject("roAssociativeArray")
+    _window.x = m.window.getX()
+    _window.y = m.window.getY()
+    _window.w = m.window.getWidth()
+    _window.h = m.window.getHeight()
+    json = FormatJSON(_window)
+    print json
+    WriteAsciiFile("window.json", json)
   else if msg="debug" then
     STOP
   end if

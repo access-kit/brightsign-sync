@@ -1,6 +1,7 @@
 {
   "filepath"  : "burden-documentation.mp4",
-  "id"        : "7",
-  "syncURL"   : "http://173.255.232.16",
-  "password"  : "syncSign"
+  "id"        : "14",
+  "syncURL"   : "http://192.168.0.202:3000",
+  "password"  : "syncSign",
+  "commandPort" : "9527"
 }
