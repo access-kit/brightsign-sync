@@ -19,6 +19,7 @@ function createSyncPlayer(_config as Object) as Object
   player.submitTimestamp = submitTimestamp
   player.markLocalStart = markLocalStart
   player.loop = loop
+  player.handleUDP = handleUDP
 
   ' Video timing fields
   player.lastCycleStartedAt = 0
@@ -52,10 +53,11 @@ function createSyncPlayer(_config as Object) as Object
   updateDurationData = updateDurationData+"duration="+player.duration.toStr()
   player.updateDurationRequest.asyncPostFromString(updateDurationData)
 
-
-
-
-
+  print "Setting up udp port", _config.commandPort.toInt()
+  player.udpReceiver = createObject("roDatagramReceiver",_config.commandPort.toInt() )
+  player.udpPort = createObject("roMessagePort") 
+  player.udpReceiver.setPort(player.udpPort)
+ 
   return player
 end function
 
@@ -87,7 +89,7 @@ function loop()
 
     ' wait until 20s before the end, then resynchronize to the server
     while (m.video.getPlaybackPosition() < m.video.getDuration()-25000):
-      sleep(1) ' wait
+      m.handleUDP() 
     end while
     print "NTP sync beginning..."
     m.clock.ntpSync()
@@ -96,9 +98,42 @@ function loop()
     ' This seems much more reliable than auto-looping.
     ' Potentially not seamless though?
     print "NTP sync completed."
-    while (m.video.getPlaybackPosition() < m.duration):
-      sleep(1) ' wait
+    
+    while (m.video.getPlaybackPosition() < m.duration-1000):
+      m.hanldeUDP()
     end while
+    
+    while (m.video.getPlaybackPosition() < m.duration):
+      sleep(1) 'wait 
+    end while
+    
     m.video.seek(0)
   end while
+end function
+
+function handleUDP()
+  msg = m.udpPort.getMessage() 
+  if msg="pause" then
+      m.video.pause()
+  else if msg="play" then
+    m.video.resume()
+  else if msg="restart" then
+    m.video.seek(0)
+  else if msg="seekforward" then
+    m.video.seek(m.video.getPlaybackPosition()+5000)
+  else if msg="seekbackward" then
+    m.video.seek(m.video.getPlaybackPosition()-5000)
+  else if msg="ff" then
+    m.video.setPlaybackSpeed(2)
+  else if msg="fff" then
+    m.video.setPlaybackSpeed(8)
+  else if msg="rr" then
+    m.video.setPlaybackSpeed(-2)
+  else if msg="rrr" then
+    m.video.setPlaybackSpeed(-8)
+  else if msg="defaultspeed" then
+    m.video.setPlaybackSpeed(1)
+  else if msg="debug" then
+    STOP
+  end if
 end function
