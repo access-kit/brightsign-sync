@@ -1,7 +1,0 @@
-{
-  "filepath"  : "8-1-3.mp4",
-  "id"        : "13",
-  "syncURL"   : "http://192.168.0.202:3000",
-  "password"  : "syncSign",
-  "commandPort": "9527"
-}
