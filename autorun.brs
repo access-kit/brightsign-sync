@@ -1,7 +1,7 @@
 LIBRARY "updateScripts.brs"
 LIBRARY "syncPlayer.brs"
 
-updateScripts()
+
 
 print "---------------------------- Brightsign Sync Looper ----------------------------"
 print ""

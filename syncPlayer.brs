@@ -56,19 +56,19 @@ function createSyncPlayer(_config as Object) as Object
   player.updateDurationRequest.asyncPostFromString(updateDurationData)
 
   ' UDP Setup
-  print "Setting up udp port", player.commandPort.toInt()
+  print "Setting up udp port", player.config.commandPort.toInt()
   player.udpSocket = createObject("roDatagramSocket")
-  player.udpSocket.bindToLocalPort(player.commandPort.toInt())
+  player.udpSocket.bindToLocalPort(player.config.commandPort.toInt())
   player.udpPort = createObject("roMessagePort")
   player.udpSocket.setPort(player.udpPort)
-  player.udpSocket.joinMulticastGroup("239.192.1.0")
-  player.udpSocket.joinMulticastGroup("239.192.1."+player.config.syncGroup)
+  player.udpSocket.joinMulticastGroup("239.192.0.0")
+  player.udpSocket.joinMulticastGroup("239.192.0."+player.config.syncGroup)
   if player.config.syncMode = "leader" then
+    player.udpSocket.joinMulticastGroup("239.192.1.0")
+    player.udpSocket.joinMulticastGroup("239.192.1."+player.config.syncGroup)
+  else if player.config.syncMode = "follower" then
     player.udpSocket.joinMulticastGroup("239.192.2.0")
     player.udpSocket.joinMulticastGroup("239.192.2."+player.config.syncGroup)
-  else if player.config.syncMode = "follower" then
-    player.udpSocket.joinMulticastGroup("239.192.3.0")
-    player.udpSocket.joinMulticastGroup("239.192.3."+player.config.syncGroup)
   end if
 
   ' Window setup
@@ -179,115 +179,115 @@ function handleUDP()
   msg = m.udpPort.getMessage() 
   if not msg = invalid
     print "Received new UDP message: ", msg
-  end if
-  if msg="pause" then
-      m.video.pause()
-  else if msg="start" then
-    m.oneshot()
-  else if msg="play" then
-    m.video.resume()
-  else if msg="restart" then
-    m.video.seek(0)
-  else if msg="seek+" then
-    m.video.seek(m.video.getPlaybackPosition()+100)
-  else if msg="seek-" then
-    m.video.seek(m.video.getPlaybackPosition()-100)
-  else if msg="seek++" then
-    m.video.seek(m.video.getPlaybackPosition()+1000)
-  else if msg="seek--" then
-    m.video.seek(m.video.getPlaybackPosition()-1000)
-  else if msg="seek+++" then
-    m.video.seek(m.video.getPlaybackPosition()+10000)
-  else if msg="seek---" then
-    m.video.seek(m.video.getPlaybackPosition()-10000)
-  else if msg="ff" then
-    m.video.setPlaybackSpeed(2)
-  else if msg="fff" then
-    m.video.setPlaybackSpeed(8)
-  else if msg="rr" then
-    m.video.setPlaybackSpeed(-2)
-  else if msg="rrr" then
-    m.video.setPlaybackSpeed(-8)
-  else if msg="defaultspeed" then
-    m.video.setPlaybackSpeed(1)
-  else if msg="stretchX" then 
-    m.window.setWidth(m.window.getWidth() + 6)
-    m.window.setX(m.window.getX()-3)
-    m.video.setRectangle(m.window)
-  else if msg="compressX" then 
-    m.window.setWidth(m.window.getWidth() - 6)
-    m.window.setX(m.window.getX()+3)
-    m.video.setRectangle(m.window)
-  else if msg="stretchY" then 
-    m.window.setHeight(m.window.getHeight() + 6)
-    m.window.setY(m.window.getY()-3)
-    m.video.setRectangle(m.window)
-  else if msg="compressY" then 
-    m.window.setHeight(m.window.getHeight() - 6)
-    m.window.setY(m.window.getY()+3)
-    m.video.setRectangle(m.window)
-  else if msg="enlarge" then 
-    m.window.setHeight(m.window.getHeight() + 6)
-    m.window.setY(m.window.getY()-3)
-    m.window.setWidth(m.window.getWidth() + 6*m.aspectRatio)
-    m.window.setX(m.window.getX()-3*m.aspectRatio)
-    m.video.setRectangle(m.window)
-  else if msg="shrink" then 
-    m.window.setHeight(m.window.getHeight() - 6)
-    m.window.setY(m.window.getY()+3)
-    m.window.setWidth(m.window.getWidth() - 6*m.aspectRatio)
-    m.window.setX(m.window.getX()+3*m.aspectRatio)
-    m.video.setRectangle(m.window)
-  else if msg="nudgeUp" then 
-    m.window.setY(m.window.getY() - 5)
-    m.video.setRectangle(m.window)
-  else if msg="nudgeDown" then 
-    m.window.setY(m.window.getY() + 5)
-    m.video.setRectangle(m.window)
-  else if msg="nudgeLeft" then 
-    m.window.setX(m.window.getX() - 5)
-    m.video.setRectangle(m.window)
-  else if msg="nudgeRight" then 
-    m.window.setX(m.window.getX() + 5)
-    m.video.setRectangle(m.window)
-  else if msg="saveWindow" then 
-    _window = createObject("roAssociativeArray")
-    _window.x = m.window.getX()
-    _window.y = m.window.getY()
-    _window.w = m.window.getWidth()
-    _window.h = m.window.getHeight()
-    json = FormatJSON(_window)
-    print json
-    WriteAsciiFile("window.json", json)
-  else if msg="restoreWindow" then 
-    wFactor = 1920/m.width
-    hFactor = 1080/m.height
-    factor = hFactor
-    hOffset = 0
-    wOffset = ( 1920-factor*m.width )/2
-    if wFactor < hFactor then 
-      factor = wFactor
-      wOffset = 0
-      hOffset = ( 1080-factor*m.height )/2
+    if msg="pause" then
+        m.video.pause()
+    else if msg="start" then
+      m.oneshot()
+    else if msg="play" then
+      m.video.resume()
+    else if msg="restart" then
+      m.video.seek(0)
+    else if msg="seek+" then
+      m.video.seek(m.video.getPlaybackPosition()+100)
+    else if msg="seek-" then
+      m.video.seek(m.video.getPlaybackPosition()-100)
+    else if msg="seek++" then
+      m.video.seek(m.video.getPlaybackPosition()+1000)
+    else if msg="seek--" then
+      m.video.seek(m.video.getPlaybackPosition()-1000)
+    else if msg="seek+++" then
+      m.video.seek(m.video.getPlaybackPosition()+10000)
+    else if msg="seek---" then
+      m.video.seek(m.video.getPlaybackPosition()-10000)
+    else if msg="ff" then
+      m.video.setPlaybackSpeed(2)
+    else if msg="fff" then
+      m.video.setPlaybackSpeed(8)
+    else if msg="rr" then
+      m.video.setPlaybackSpeed(-2)
+    else if msg="rrr" then
+      m.video.setPlaybackSpeed(-8)
+    else if msg="defaultspeed" then
+      m.video.setPlaybackSpeed(1)
+    else if msg="stretchX" then 
+      m.window.setWidth(m.window.getWidth() + 6)
+      m.window.setX(m.window.getX()-3)
+      m.video.setRectangle(m.window)
+    else if msg="compressX" then 
+      m.window.setWidth(m.window.getWidth() - 6)
+      m.window.setX(m.window.getX()+3)
+      m.video.setRectangle(m.window)
+    else if msg="stretchY" then 
+      m.window.setHeight(m.window.getHeight() + 6)
+      m.window.setY(m.window.getY()-3)
+      m.video.setRectangle(m.window)
+    else if msg="compressY" then 
+      m.window.setHeight(m.window.getHeight() - 6)
+      m.window.setY(m.window.getY()+3)
+      m.video.setRectangle(m.window)
+    else if msg="enlarge" then 
+      m.window.setHeight(m.window.getHeight() + 6)
+      m.window.setY(m.window.getY()-3)
+      m.window.setWidth(m.window.getWidth() + 6*m.aspectRatio)
+      m.window.setX(m.window.getX()-3*m.aspectRatio)
+      m.video.setRectangle(m.window)
+    else if msg="shrink" then 
+      m.window.setHeight(m.window.getHeight() - 6)
+      m.window.setY(m.window.getY()+3)
+      m.window.setWidth(m.window.getWidth() - 6*m.aspectRatio)
+      m.window.setX(m.window.getX()+3*m.aspectRatio)
+      m.video.setRectangle(m.window)
+    else if msg="nudgeUp" then 
+      m.window.setY(m.window.getY() - 5)
+      m.video.setRectangle(m.window)
+    else if msg="nudgeDown" then 
+      m.window.setY(m.window.getY() + 5)
+      m.video.setRectangle(m.window)
+    else if msg="nudgeLeft" then 
+      m.window.setX(m.window.getX() - 5)
+      m.video.setRectangle(m.window)
+    else if msg="nudgeRight" then 
+      m.window.setX(m.window.getX() + 5)
+      m.video.setRectangle(m.window)
+    else if msg="saveWindow" then 
+      _window = createObject("roAssociativeArray")
+      _window.x = m.window.getX()
+      _window.y = m.window.getY()
+      _window.w = m.window.getWidth()
+      _window.h = m.window.getHeight()
+      json = FormatJSON(_window)
+      print json
+      WriteAsciiFile("window.json", json)
+    else if msg="restoreWindow" then 
+      wFactor = 1920/m.width
+      hFactor = 1080/m.height
+      factor = hFactor
+      hOffset = 0
+      wOffset = ( 1920-factor*m.width )/2
+      if wFactor < hFactor then 
+        factor = wFactor
+        wOffset = 0
+        hOffset = ( 1080-factor*m.height )/2
+      end if
+      m.window = createObject("roRectangle",wOffset,hOffset, m.width * factor , m.height* factor )
+      m.video.setRectangle(m.window)
+      _window = createObject("roAssociativeArray")
+      _window.x = m.window.getX()
+      _window.y = m.window.getY()
+      _window.w = m.window.getWidth()
+      _window.h = m.window.getHeight()
+      json = FormatJSON(_window)
+      print json
+      WriteAsciiFile("window.json", json)
+    else if msg.getString().tokenize(" ")[0]="changeVideopath" then
+      m.changeVideopath(msg.getString().tokenize(" ")[1])
+    else if msg.getString().tokenize(" ")[0]="replaceContent" then 
+      m.dlContentToFile(msg.getString().tokenize(" ")[1], m.config.videopath)
+    else if msg.getString().tokenize(" ")[0]="downloadContent" then
+      m.dlContentToFile(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
+    else if msg="debug" then
+      END
     end if
-    m.window = createObject("roRectangle",wOffset,hOffset, m.width * factor , m.height* factor )
-    m.video.setRectangle(m.window)
-    _window = createObject("roAssociativeArray")
-    _window.x = m.window.getX()
-    _window.y = m.window.getY()
-    _window.w = m.window.getWidth()
-    _window.h = m.window.getHeight()
-    json = FormatJSON(_window)
-    print json
-    WriteAsciiFile("window.json", json)
-  else if msg.tokenize(" ")[0]="changeVideopath" then
-    m.changeVideopath(msg.tokenize(" ")[1])
-  else if msg.tokenize(" ")[0]="replaceContent" then 
-    m.dlContentToFile(msg.tokenize(" ")[1], m.config.videopath)
-  else if msg.tokenize(" ")[0]="downloadContent" then
-    m.dlContentToFile(msg.tokenize(" ")[1], msg.tokenize(" ")[2])
-  else if msg="debug" then
-    STOP
   end if
 end function
 
