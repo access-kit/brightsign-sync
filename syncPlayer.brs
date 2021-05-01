@@ -18,6 +18,10 @@ function createSyncPlayer(_config as Object) as Object
   ' Give the player methods
   player.submitTimestamp = submitTimestamp
   player.markLocalStart = markLocalStart
+  player.oneshot = oneshot
+  player.solo = solo
+  player.lead = lead
+  player.follow = follow
   player.loop = loop
   player.handleUDP = handleUDP
 
@@ -46,6 +50,7 @@ function createSyncPlayer(_config as Object) as Object
   ok = player.video.addEvent(1, player.video.getDuration() - 20000) ' Throw an event for resynchronization 20s before film end
   player.duration = player.video.getDuration()-20
 
+  ' Update the server with the newly determined timestamp
   print "Updating duration on server..."
   player.updateDurationRequest = createObject("roUrlTransfer")
   player.updateDurationRequest.setUrl(player.url+"/api/work/"+player.id+"/duration")
@@ -53,11 +58,25 @@ function createSyncPlayer(_config as Object) as Object
   updateDurationData = updateDurationData+"duration="+player.duration.toStr()
   player.updateDurationRequest.asyncPostFromString(updateDurationData)
 
+  ' UDP Setup
   print "Setting up udp port", _config.commandPort.toInt()
-  player.udpReceiver = createObject("roDatagramReceiver",_config.commandPort.toInt() )
-  player.udpPort = createObject("roMessagePort") 
-  player.udpReceiver.setPort(player.udpPort)
+  player.udpSocket = createObject("roDatagramSocket")
+  player.udpSocket.bindToLocalPort(_config.commandPort.toInt())
+  player.udpPort = createObject("roMessagePort")
+  player.udpSocket.setPort(player.udpPort)
+  player.multicastGroup = _config.syncGroup
+  player.udpSocket.joinMulticastGroup("239.27.0.0")
+  player.udpSocket.joinMulticastGroup("239.27.0."+player.multicastGroup)
+  player.syncMode = _config.syncMode
+  if player.syncMode = "leader" then
+    player.udpSocket.joinMulticastGroup("239.27.1.0")
+    player.udpSocket.joinMulticastGroup("239.27.1."+player.multicastGroup)
+  else if player.syncMode = "follower" then
+    player.udpSocket.joinMulticastGroup("239.27.2.0")
+    player.udpSocket.joinMulticastGroup("239.27.2."+player.multicastGroup)
+  end if
 
+  ' Window setup
   print "Sleeping so that video dimensions can be parsed..."
   sleep(1000)
   player.width = player.video.getStreamInfo().videoWidth
@@ -102,42 +121,74 @@ function submitTimestamp() as String
 end function
 
 function loop()
-  print "Beginning seamless synchronized looping..."
-  while true
-    m.video.play()
-    sleep(35) ' TODO: DEAL WITH THIS MAGIC NUMBER!! 1 frame delay?
-    m.markLocalStart()
-    m.submitTimestamp()
-    print "New loop just started."
+  if m.syncMode = "leader"
+    m.lead()
+  else if m.syncMode = "follower"
+    m.follow()
+  else if m.syncMode = "solo"
+    m.solo()
+  end if
+end function 
 
-    ' wait until 20s before the end, then resynchronize to the server
-    while (m.video.getPlaybackPosition() < m.video.getDuration()-25000):
-      m.handleUDP() 
-    end while
-    print "NTP sync beginning..."
-    m.clock.ntpSync()
+function oneshot()
+  m.video.play()
+  sleep(35) ' TODO: DEAL WITH THIS MAGIC NUMBER!! 1 frame delay?
+  m.markLocalStart()
+  m.submitTimestamp()
+  print "New loop just started."
 
-    ' Wait until the end of the file, then seek to the beginning.
-    ' This seems much more reliable than auto-looping.
-    ' Potentially not seamless though?
-    print "NTP sync completed."
-    
-    while (m.video.getPlaybackPosition() < m.duration-1000):
-      m.handleUDP()
-    end while
-    
-    while (m.video.getPlaybackPosition() < m.duration):
-      sleep(1) 'wait 
-    end while
-    
-    m.video.seek(0)
+  ' wait until 20s before the end, then resynchronize to the server
+  while (m.video.getPlaybackPosition() < m.video.getDuration()-25000):
+    m.handleUDP() 
+  end while
+  print "NTP sync beginning..."
+  m.clock.ntpSync()
+
+  ' Wait until the end of the file, then seek to the beginning.
+  ' This seems much more reliable than auto-looping.
+  ' Potentially not seamless though?
+  print "NTP sync completed."
+  
+  while (m.video.getPlaybackPosition() < m.duration-1000):
+    m.handleUDP()
+  end while
+  
+  while (m.video.getPlaybackPosition() < m.duration):
+    sleep(1) 'wait 
+  end while
+  
+  m.video.seek(0)
+end function
+
+function lead() 
+  while True:
+    m.udpSocket.sendTo("239.27.2."+m.multicastGroup, 9500,"start")
+    m.oneshot()
+  end while
+end function
+
+function follow() 
+  while True:
+    m.handleUDP()
+  end while
+end function
+
+function solo()
+  print "Beginning seamless looping as solo player"
+  while True:
+    m.oneshot()
   end while
 end function
 
 function handleUDP()
   msg = m.udpPort.getMessage() 
+  if not msg = invalid
+    print "Received new UDP message: ", msg
+  end if
   if msg="pause" then
       m.video.pause()
+  else if msg="start" then
+    m.oneshot()
   else if msg="play" then
     m.video.resume()
   else if msg="restart" then
@@ -205,6 +256,27 @@ function handleUDP()
     m.window.setX(m.window.getX() + 5)
     m.video.setRectangle(m.window)
   else if msg="saveWindow" then 
+    _window = createObject("roAssociativeArray")
+    _window.x = m.window.getX()
+    _window.y = m.window.getY()
+    _window.w = m.window.getWidth()
+    _window.h = m.window.getHeight()
+    json = FormatJSON(_window)
+    print json
+    WriteAsciiFile("window.json", json)
+  else if msg="restoreWindow" then 
+    wFactor = 1920/m.width
+    hFactor = 1080/m.height
+    factor = hFactor
+    hOffset = 0
+    wOffset = ( 1920-factor*m.width )/2
+    if wFactor < hFactor then 
+      factor = wFactor
+      wOffset = 0
+      hOffset = ( 1080-factor*m.height )/2
+    end if
+    m.window = createObject("roRectangle",wOffset,hOffset, m.width * factor , m.height* factor )
+    m.video.setRectangle(m.window)
     _window = createObject("roAssociativeArray")
     _window.x = m.window.getX()
     _window.y = m.window.getY()
