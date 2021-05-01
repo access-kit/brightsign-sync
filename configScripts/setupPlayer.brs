@@ -10,4 +10,11 @@ print "Password has been set and SSH Enabled."
 
 nc = CreateObject("roNetworkConfiguration", 0)
 rebootRequired = nc.SetupDWS({open:"syncSign"})
-if rebootRequired RebootSystem()
+
+regSec = CreateObject("roRegistrySection", "networking")
+regSec.Write("ptp_domain", "0")
+regSec.Flush()
+
+
+WriteAsciiFile("initialized.txt","1")
+RebootSystem()
