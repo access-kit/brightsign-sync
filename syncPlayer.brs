@@ -61,14 +61,14 @@ function createSyncPlayer(_config as Object) as Object
   player.udpSocket.bindToLocalPort(player.commandPort.toInt())
   player.udpPort = createObject("roMessagePort")
   player.udpSocket.setPort(player.udpPort)
-  player.udpSocket.joinMulticastGroup("239.27.0.0")
-  player.udpSocket.joinMulticastGroup("239.27.0."+player.config.syncGroup)
+  player.udpSocket.joinMulticastGroup("239.192.1.0")
+  player.udpSocket.joinMulticastGroup("239.192.1."+player.config.syncGroup)
   if player.config.syncMode = "leader" then
-    player.udpSocket.joinMulticastGroup("239.27.1.0")
-    player.udpSocket.joinMulticastGroup("239.27.1."+player.config.syncGroup)
+    player.udpSocket.joinMulticastGroup("239.192.2.0")
+    player.udpSocket.joinMulticastGroup("239.192.2."+player.config.syncGroup)
   else if player.config.syncMode = "follower" then
-    player.udpSocket.joinMulticastGroup("239.27.2.0")
-    player.udpSocket.joinMulticastGroup("239.27.2."+player.config.syncGroup)
+    player.udpSocket.joinMulticastGroup("239.192.3.0")
+    player.udpSocket.joinMulticastGroup("239.192.3."+player.config.syncGroup)
   end if
 
   ' Window setup
@@ -157,7 +157,7 @@ end function
 
 function lead() 
   while True:
-    m.udpSocket.sendTo("239.27.2."+m.config.syncGroup, 9500,"start")
+    m.udpSocket.sendTo("239.192.3."+m.config.syncGroup, 9500,"start")
     m.oneshot()
   end while
 end function
