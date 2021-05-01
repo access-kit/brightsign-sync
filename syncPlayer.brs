@@ -2,16 +2,13 @@ LIBRARY "time.brs"
 
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
-  player.id = _config.id
-  player.videopath = _config.filepath
+  player.config = _config
 
 
 
   ' Set up the sync API communications
-  player.url = _config.syncURL
-  player.password = _config.password
   player.request = createObject("roUrlTransfer")
-  player.request.setUrl(player.url+"/api/work/"+player.id+"/timestamp")
+  player.request.setUrl(player.config.syncURL+"/api/work/"+player.config.id+"/timestamp")
   player.responsePort = createObject("roMessagePort")
   player.request.setPort(player.responsePort)
 
@@ -34,7 +31,7 @@ function createSyncPlayer(_config as Object) as Object
   player.mode.setMode("auto")
 
   ' Create a clock and sync it
-  player.clock = createClock(player.url,player.password)
+  player.clock = createClock(player.config.syncURL,player.config.password)
 
 
   ' Video port for events
@@ -46,34 +43,32 @@ function createSyncPlayer(_config as Object) as Object
   player.video.setViewMode(0) 
   player.video.setVolume(15) ' see config stuff in master from zachpoff
   Print "Preloading video..."
-  print "Preload status:", player.video.preloadFile(player.videopath)
+  print "Preload status:", player.video.preloadFile(player.config.videopath)
   ok = player.video.addEvent(1, player.video.getDuration() - 20000) ' Throw an event for resynchronization 20s before film end
   player.duration = player.video.getDuration()-20
 
   ' Update the server with the newly determined timestamp
   print "Updating duration on server..."
   player.updateDurationRequest = createObject("roUrlTransfer")
-  player.updateDurationRequest.setUrl(player.url+"/api/work/"+player.id+"/duration")
-  updateDurationData = "password="+player.password+"&"
+  player.updateDurationRequest.setUrl(player.config.syncURL+"/api/work/"+player.config.id+"/duration")
+  updateDurationData = "password="+player.config.password+"&"
   updateDurationData = updateDurationData+"duration="+player.duration.toStr()
   player.updateDurationRequest.asyncPostFromString(updateDurationData)
 
   ' UDP Setup
-  print "Setting up udp port", _config.commandPort.toInt()
+  print "Setting up udp port", player.commandPort.toInt()
   player.udpSocket = createObject("roDatagramSocket")
-  player.udpSocket.bindToLocalPort(_config.commandPort.toInt())
+  player.udpSocket.bindToLocalPort(player.commandPort.toInt())
   player.udpPort = createObject("roMessagePort")
   player.udpSocket.setPort(player.udpPort)
-  player.multicastGroup = _config.syncGroup
   player.udpSocket.joinMulticastGroup("239.27.0.0")
-  player.udpSocket.joinMulticastGroup("239.27.0."+player.multicastGroup)
-  player.syncMode = _config.syncMode
-  if player.syncMode = "leader" then
+  player.udpSocket.joinMulticastGroup("239.27.0."+player.config.syncGroup)
+  if player.config.syncMode = "leader" then
     player.udpSocket.joinMulticastGroup("239.27.1.0")
-    player.udpSocket.joinMulticastGroup("239.27.1."+player.multicastGroup)
-  else if player.syncMode = "follower" then
+    player.udpSocket.joinMulticastGroup("239.27.1."+player.config.syncGroup)
+  else if player.config.syncMode = "follower" then
     player.udpSocket.joinMulticastGroup("239.27.2.0")
-    player.udpSocket.joinMulticastGroup("239.27.2."+player.multicastGroup)
+    player.udpSocket.joinMulticastGroup("239.27.2."+player.config.syncGroup)
   end if
 
   ' Window setup
@@ -108,7 +103,7 @@ function markLocalStart()
 end function
 
 function submitTimestamp() as String
-  postString = "password="+m.request.escape(m.password)+"&"
+  postString = "password="+m.request.escape(m.config.password)+"&"
   postString = postString+"lastTimestamp="+m.request.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.request.asyncPostFromString(postString)
   response = m.responsePort.waitMessage(1000)
@@ -121,11 +116,11 @@ function submitTimestamp() as String
 end function
 
 function loop()
-  if m.syncMode = "leader"
+  if m.config.syncMode = "leader"
     m.lead()
-  else if m.syncMode = "follower"
+  else if m.config.syncMode = "follower"
     m.follow()
-  else if m.syncMode = "solo"
+  else if m.config.syncMode = "solo"
     m.solo()
   end if
 end function 
@@ -162,7 +157,7 @@ end function
 
 function lead() 
   while True:
-    m.udpSocket.sendTo("239.27.2."+m.multicastGroup, 9500,"start")
+    m.udpSocket.sendTo("239.27.2."+m.config.syncGroup, 9500,"start")
     m.oneshot()
   end while
 end function
@@ -285,7 +280,40 @@ function handleUDP()
     json = FormatJSON(_window)
     print json
     WriteAsciiFile("window.json", json)
+  else if msg.tokenize(" ")[0]="changeVideopath" then
+    m.changeVideopath(msg.tokenize(" ")[1])
+  else if msg.tokenize(" ")[0]="replaceContent" then 
+    m.dlContentToFile(msg.tokenize(" ")[1], m.config.videopath)
+  else if msg.tokenize(" ")[0]="downloadContent" then
+    m.dlContentToFile(msg.tokenize(" ")[1], msg.tokenize(" ")[2])
   else if msg="debug" then
     STOP
+  end if
+end function
+
+function changeVideopath(newpath)
+  print "Received a new videopath"
+  m.config.videopath = newpath
+  json = FormatJSON(m.config)
+  print "Saving new configuration..."
+  print json
+  WriteAsciiFile("config.json", json)
+end function
+
+function dlContentToFile(url, filepath)
+  m.video.stop()
+  m.downloadAlert = createObject("roTextField", 100,100,100,3)
+  print #m.downloadAlert, "Attempting to download new content from ", url
+  print "Command to get new content issued.  Stopping video and attempting to download new content from ", url
+  request = createObject("roUrlTransfer")
+  request.setUrl(url)
+  resCode = request.getToFile(filepath)
+  m.downloadAlert.cls()
+  if resCode = 200 then
+    print "success!"
+    print #m.downloadAlert, "Successfully downloaded new content."
+  else
+    print "request failed, response code: ", resCode
+    print #m.downloadAlert, "Download attempt failed, response code: ", resCode
   end if
 end function
