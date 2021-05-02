@@ -21,6 +21,8 @@ function createSyncPlayer(_config as Object) as Object
   player.follow = follow
   player.loop = loop
   player.handleUDP = handleUDP
+  player.dlContentToFile = dlContentToFile
+  player.changeVideopath = changeVideopath
 
   ' Video timing fields
   player.lastCycleStartedAt = 0
@@ -302,7 +304,7 @@ end function
 
 function dlContentToFile(url, filepath)
   m.video.stop()
-  m.downloadAlert = createObject("roTextField", 100,100,100,3)
+  m.downloadAlert = createObject("roTextField", 100,100,100,3,0)
   print #m.downloadAlert, "Attempting to download new content from ", url
   print "Command to get new content issued.  Stopping video and attempting to download new content from ", url
   request = createObject("roUrlTransfer")
