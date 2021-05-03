@@ -4,33 +4,35 @@ function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
   player.config = _config
 
+  player.cmsState = "idle"
+  player.transportState = "idle"
 
-
-  ' Set up the sync API communications
+  ' Set up the http request and response handlers
   player.request = createObject("roUrlTransfer")
-  player.request.setUrl(player.config.syncURL+"/api/work/"+player.config.id+"/timestamp")
   player.responsePort = createObject("roMessagePort")
   player.request.setPort(player.responsePort)
 
   ' Give the player methods
+  player.run = run
+  player.sync = sync
+  player.cms = cms
+  player.transport = transport
   player.submitTimestamp = submitTimestamp
   player.markLocalStart = markLocalStart
-  player.oneshot = oneshot
-  player.solo = solo
-  player.lead = lead
-  player.follow = follow
-  player.loop = loop
+  player.setupUDP = setupUDP
+  player.setupVideoWindow = setupVideoWindow
   player.handleUDP = handleUDP
   player.dlContentToFile = dlContentToFile
   player.changeVideopath = changeVideopath
+  player.loadVideoFile = loadVideoFile
 
   ' Video timing fields
   player.lastCycleStartedAt = 0
   player.duration = 0
 
   ' Screen resolution settings
-  player.mode = CreateObject("roVideoMode")
-  player.mode.setMode("auto")
+  player.videoMode = CreateObject("roVideoMode")
+  player.videoMode.setMode("auto")
 
   ' Create a clock and sync it
   player.clock = createClock(player.config.syncURL,player.config.password)
@@ -39,65 +41,78 @@ function createSyncPlayer(_config as Object) as Object
   ' Video port for events
   player.videoPort = createObject("roMessagePort")
 
-  ' Init the first copy of video
+  ' Init the video playback object
   player.video = createObject("roVideoPlayer")
   player.video.setPort(player.videoPort)
   player.video.setViewMode(0) 
   player.video.setVolume(15) ' see config stuff in master from zachpoff
-  Print "Preloading video..."
-  print "Preload status:", player.video.preloadFile(player.config.videopath)
-  ok = player.video.addEvent(1, player.video.getDuration() - 20000) ' Throw an event for resynchronization 20s before film end
-  player.duration = player.video.getDuration()-20
 
-  ' Update the server with the newly determined timestamp
-  print "Updating duration on server..."
-  player.updateDurationRequest = createObject("roUrlTransfer")
-  player.updateDurationRequest.setUrl(player.config.syncURL+"/api/work/"+player.config.id+"/duration")
-  updateDurationData = "password="+player.config.password+"&"
-  updateDurationData = updateDurationData+"duration="+player.duration.toStr()
-  player.updateDurationRequest.asyncPostFromString(updateDurationData)
+  ' Load the currently selected video and report its duration
+  player.loadVideoFile()
 
   ' UDP Setup
-  print "Setting up udp port", player.config.commandPort.toInt()
-  player.udpSocket = createObject("roDatagramSocket")
-  player.udpSocket.bindToLocalPort(player.config.commandPort.toInt())
-  player.udpPort = createObject("roMessagePort")
-  player.udpSocket.setPort(player.udpPort)
-  player.udpSocket.joinMulticastGroup("239.192.0.0")
-  player.udpSocket.joinMulticastGroup("239.192.0."+player.config.syncGroup)
-  if player.config.syncMode = "leader" then
-    player.udpSocket.joinMulticastGroup("239.192.1.0")
-    player.udpSocket.joinMulticastGroup("239.192.1."+player.config.syncGroup)
-  else if player.config.syncMode = "follower" then
-    player.udpSocket.joinMulticastGroup("239.192.2.0")
-    player.udpSocket.joinMulticastGroup("239.192.2."+player.config.syncGroup)
-  end if
+  player.setupUDP()
 
   ' Window setup
   print "Sleeping so that video dimensions can be parsed..."
   sleep(1000)
-  player.width = player.video.getStreamInfo().videoWidth
-  player.height = player.video.getStreamInfo().videoHeight
-  player.aspectRatio = player.width / player.height
+  player.setupVideoWindow()
+  
+  return player
+end function
+
+function loadVideoFile()
+  print "Preloading video..."
+  print "Preload status:", m.video.preloadFile(m.config.videopath)
+  m.duration = m.video.getDuration()-20
+
+  ' Update the server with the newly determined timestamp
+  print "Updating duration on server..."
+  m.updateDurationRequest = createObject("roUrlTransfer")
+  m.updateDurationRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/duration")
+  updateDurationData = "password="+m.config.password+"&"
+  updateDurationData = updateDurationData+"duration="+m.duration.toStr()
+  m.updateDurationRequest.asyncPostFromString(updateDurationData)
+end function
+
+function setupUDP()
+  print "Setting up udp port", m.config.commandPort.toInt()
+  m.udpSocket = createObject("roDatagramSocket")
+  m.udpSocket.bindToLocalPort(m.config.commandPort.toInt())
+  m.udpPort = createObject("roMessagePort")
+  m.udpSocket.setPort(m.udpPort)
+  m.udpSocket.joinMulticastGroup("239.192.0.0")
+  m.udpSocket.joinMulticastGroup("239.192.0."+m.config.syncGroup)
+  if m.config.syncMode = "leader" then
+    m.udpSocket.joinMulticastGroup("239.192.1.0")
+    m.udpSocket.joinMulticastGroup("239.192.1."+m.config.syncGroup)
+  else if m.config.syncMode = "follower" then
+    m.udpSocket.joinMulticastGroup("239.192.2.0")
+    m.udpSocket.joinMulticastGroup("239.192.2."+m.config.syncGroup)
+  end if
+end function
+
+function setupVideoWindow()
+  m.width = m.video.getStreamInfo().videoWidth
+  m.height = m.video.getStreamInfo().videoHeight
+  m.aspectRatio = m.width / m.height
   _window = ParseJSON(ReadAsciiFile("window.json"))
   if not _window = invalid then
-    player.window = createObject("roRectangle", _window.x,_window.y,_window.w,_window.h)
+    m.window = createObject("roRectangle", _window.x,_window.y,_window.w,_window.h)
   else 
-    wFactor = 1920/player.width
-    hFactor = 1080/player.height
+    wFactor = 1920/m.width
+    hFactor = 1080/m.height
     factor = hFactor
     hOffset = 0
-    wOffset = ( 1920-factor*player.width )/2
+    wOffset = ( 1920-factor*m.width )/2
     if wFactor < hFactor then 
       factor = wFactor
       wOffset = 0
-      hOffset = ( 1080-factor*player.height )/2
+      hOffset = ( 1080-factor*m.height )/2
     end if
-    player.window = createObject("roRectangle",wOffset,hOffset, player.width * factor , player.height* factor )
+    m.window = createObject("roRectangle",wOffset,hOffset, m.width * factor , m.height* factor )
   end if
-  player.video.setRectangle(player.window)
-  
-  return player
+  m.video.setRectangle(m.window)
 end function
 
 function markLocalStart()
@@ -105,76 +120,17 @@ function markLocalStart()
 end function
 
 function submitTimestamp() as String
+  m.request.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/timestamp")
   postString = "password="+m.request.escape(m.config.password)+"&"
   postString = postString+"lastTimestamp="+m.request.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.request.asyncPostFromString(postString)
-  response = m.responsePort.waitMessage(1000)
-  if not response = invalid then
-    response = response.getString()
-    return response
-  else 
-    return "invalid"
-  end if
-end function
-
-function loop()
-  if m.config.syncMode = "leader"
-    m.lead()
-  else if m.config.syncMode = "follower"
-    m.follow()
-  else if m.config.syncMode = "solo"
-    m.solo()
-  end if
-end function 
-
-function oneshot()
-  m.video.play()
-  sleep(35) ' TODO: DEAL WITH THIS MAGIC NUMBER!! 1 frame delay?
-  m.markLocalStart()
-  m.submitTimestamp()
-  print "New loop just started."
-
-  ' wait until 20s before the end, then resynchronize to the server
-  while (m.video.getPlaybackPosition() < m.video.getDuration()-25000):
-    m.handleUDP() 
-  end while
-  print "NTP sync beginning..."
-  m.clock.ntpSync()
-
-  ' Wait until the end of the file, then seek to the beginning.
-  ' This seems much more reliable than auto-looping.
-  ' Potentially not seamless though?
-  print "NTP sync completed."
-  
-  while (m.video.getPlaybackPosition() < m.duration-1000):
-    m.handleUDP()
-  end while
-  
-  while (m.video.getPlaybackPosition() < m.duration):
-    sleep(1) 'wait 
-  end while
-  
-  m.video.seek(0)
-end function
-
-function lead() 
-  while True:
-    m.udpSocket.sendTo("239.192.3."+m.config.syncGroup, 9500,"start")
-    m.oneshot()
-  end while
-end function
-
-function follow() 
-  while True:
-    m.handleUDP()
-  end while
-end function
-
-function solo()
-  print "Beginning seamless looping as solo player"
-  while True:
-    m.oneshot()
-  end while
+  ' response = m.responsePort.waitMessage(1000)
+  ' if not response = invalid then
+  '   response = response.getString()
+  '   return response
+  ' else 
+  '   return "invalid"
+  ' end if
 end function
 
 function handleUDP()
@@ -184,11 +140,18 @@ function handleUDP()
     if msg="pause" then
         m.video.pause()
     else if msg="start" then
-      m.oneshot()
+      ' if not m.video.getPlaybackPosition() = 0 then
+      '   m.video.stop()
+      '   m.video.seek(0)
+      ' end if
+      m.video.seek(0)
+      m.transportState = "starting"
     else if msg="play" then
       m.video.resume()
-    else if msg="restart" then
+    else if msg = "stop" then 
+      m.video.stop()
       m.video.seek(0)
+      m.transportState = "idle"
     else if msg="seek+" then
       m.video.seek(m.video.getPlaybackPosition()+100)
     else if msg="seek-" then
@@ -258,28 +221,18 @@ function handleUDP()
       _window.w = m.window.getWidth()
       _window.h = m.window.getHeight()
       json = FormatJSON(_window)
-      print json
+      print "Writing new window configuration to disk: ", json
       WriteAsciiFile("window.json", json)
     else if msg="restoreWindow" then 
-      wFactor = 1920/m.width
-      hFactor = 1080/m.height
-      factor = hFactor
-      hOffset = 0
-      wOffset = ( 1920-factor*m.width )/2
-      if wFactor < hFactor then 
-        factor = wFactor
-        wOffset = 0
-        hOffset = ( 1080-factor*m.height )/2
-      end if
-      m.window = createObject("roRectangle",wOffset,hOffset, m.width * factor , m.height* factor )
-      m.video.setRectangle(m.window)
+      DeleteFile("window.json")
+      m.setupVideoWindow()
       _window = createObject("roAssociativeArray")
       _window.x = m.window.getX()
       _window.y = m.window.getY()
       _window.w = m.window.getWidth()
       _window.h = m.window.getHeight()
       json = FormatJSON(_window)
-      print json
+      print "Writing new window configuration to disk: ", json
       WriteAsciiFile("window.json", json)
     else if msg.getString().tokenize(" ")[0]="changeVideopath" then
       m.changeVideopath(msg.getString().tokenize(" ")[1])
@@ -307,9 +260,8 @@ function dlContentToFile(url, filepath)
   m.downloadAlert = createObject("roTextField", 100,100,100,3,0)
   print #m.downloadAlert, "Attempting to download new content from ", url
   print "Command to get new content issued.  Stopping video and attempting to download new content from ", url
-  request = createObject("roUrlTransfer")
-  request.setUrl(url)
-  resCode = request.getToFile(filepath)
+  m.request.setUrl(url)
+  resCode = m.request.getToFile(filepath)
   m.downloadAlert.cls()
   if resCode = 200 then
     print "success!"
@@ -318,4 +270,58 @@ function dlContentToFile(url, filepath)
     print "request failed, response code: ", resCode
     print #m.downloadAlert, "Download attempt failed, response code: ", resCode
   end if
+end function
+
+function sync()
+  if m.clock.state = "idle" then
+    if m.video.getPlaybackPosition() > m.duration - 25000 then
+      m.clock.state = "starting"
+    end if
+  else if m.clock.state = "finished" then
+    if m.video.getPlaybackPosition() < 5000 then
+      m.clock.state = "idle"
+    end if
+  end if
+  m.clock.run()
+end function
+
+function transport()
+  if m.transportState = "idle" then
+  else if m.transportState = "starting" then
+    if m.syncMode = "leader" then 
+      m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
+    end if
+    m.video.play()
+    sleep(35)
+    m.markLocalStart()
+    m.submitTimestamp()
+    m.transportState = "waiting to finish"
+  else if m.transportState = "waiting to finish" then
+    if m.video.getPlaybackPosition.getPlaybackPosition() >= m.duration then 
+      m.video.seek(0)
+      if m.config.syncMode = "leader" or m.config.syncMode = "solo" then
+        m.transportState = "starting"
+      else
+        m.transportState = "idle"
+      end if
+    end if
+  end if
+end function
+
+function cms()
+  if m.cmsState = "idle"
+  else if m.cmsState = "start downloading content" then
+  else if m.cmsState = "downloading content" then
+  else if m.cmsState = "start downloading scripts" then
+  else if m.cmsState = "downloading scripts" then
+  end if
+end function
+
+function run()
+  while True: 
+    m.handleUDP()
+    m.transport()
+    m.sync()
+    m.cms()
+  end while
 end function

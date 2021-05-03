@@ -34,6 +34,9 @@ function createClock(_syncURL as String, _password as String) as Object
   timer.calculateOffset = calculateOffset
   timer.ntpSync = ntpSync
   timer.synchronizeTimestamp = synchronizeTimestamp
+  
+  ' Give it state machine functions
+  timer.run = run
 
   ' Run an initial sync and get the clock into the same range
   ' Then calculate the new difference
@@ -87,6 +90,111 @@ function getTimeDiff(time1 as String, time2 as String) as Integer ' NB: Assumes 
   msDiff = time1MS-time2MS
   diff = sDiff*1000+msDiff
   return diff
+end function
+
+function run()
+  if m.state = "idle" then 
+  else if m.state = "starting" then
+    ' Create an empty array to store the offsets in
+    m.offsets = createObject("roArray",0,true)
+
+    m.state = "requesting an offset"
+  else if m.state = "requesting an offset" then
+    m.request.setUrl(m.apiEndpoint+"?reqSentAt="+m.getEpochAsMSString())
+    m.request.asyncGetToString()
+    m.reqTimer.mark()
+    m.state = "awaiting an offset"
+  else if m.state = "awaiting an offset" then
+    if m.reqTimer.totalMilliseconds() > 750 then
+      m.offsets.push(m.serverTimeOffset)
+      if m.offsets.length < m.ntpSyncCycles then 
+        m.state = "requesting an offset"
+      else 
+        m.state = "calculating average"
+      end if
+    else
+      res = m.responsePort.getMessage()
+      if not res = invalid then
+        resReceivedAt = m.getEpochAsMSString()
+        response = res.getString()
+        tokens = response.tokenize(chr(34)+"{},:")
+        reqSentAt = ""
+        reqReceivedAt = ""
+        resSentAt = ""
+        if (tokens[0] = "reqSentAt") then
+          reqSentAt = tokens[1]
+        else if (tokens[0] = "reqReceivedAt") then
+          reqReceivedAt = tokens[1]
+        else
+          resSentAt = tokens[1]
+        end if
+
+        if (tokens[2] = "reqSentAt") then
+          reqSentAt = tokens[3]
+        else if (tokens[2] = "reqReceivedAt") then
+          reqReceivedAt = tokens[3]
+        else
+          resSentAt = tokens[3]
+        end if
+
+        if (tokens[4] = "reqSentAt") then
+          reqSentAt = tokens[5]
+        else if (tokens[4] = "reqReceivedAt") then
+          reqReceivedAt = tokens[5]
+        else
+          resSentAt = tokens[5]
+        end if
+        if reqSentAt.len() > 0 then
+          roundTripTime = m.getTimeDiff(resReceivedAt,reqSentAt)
+          serverPerfTime = m.getTimeDiff(resSentAt,reqReceivedAt)
+          transitTime = roundTripTime-serverPerfTime
+          latency = int(transitTime / 2)
+          offset = m.getTimeDiff(reqReceivedAt,reqSentAt)-latency
+          print " "
+          print "Latency:", latency
+          print "Offset: ", offset
+          m.offsets.push(offset)
+        else 
+          print "response did not contained expected data"
+          m.offsets.push(m.serverTimeOffset)
+        end if
+        if m.offsets.length < m.ntpSyncCycles then 
+          m.state = "requesting an offset"
+        else 
+          m.state = "calculating average"
+        end if
+      end if
+    end if
+  else if m.state = "calculating average" then
+    sum = 0
+    for each offset in m.offsets
+      sum = sum + offset
+    end for
+    avgOffset = sum/m.offsets.count()
+
+    ' Standard deviation calculation
+    diffsSquaredSum = 0
+    for each offset in m.offsets
+      diffsSquaredSum = diffsSquaredSum + (offset-avgOffset)*(offset-avgOffset)
+    end for
+    stdDev = sqr(diffsSquaredSum/(m.offsets.count()-1))
+
+    ' Throw out outliers at > 1 std dev.
+    validOffsetsCount = 0
+    validSum = 0
+    for each offset in m.offsets
+      if abs(offset-avgOffset) <= stdDev then
+        validOffsetsCount = validOffsetsCount +1
+        validSum = validSum + offset
+      end if
+    end for
+    avgNoOutliers = int(validSum/validOffsetsCount)
+
+    ' Set the offset accordingly.
+    m.serverTimeOffset = avgNoOutliers
+    m.state = "finished"
+  else if m.state = "finished" then
+  end if
 end function
 
 ' Submit a timestamp to a server

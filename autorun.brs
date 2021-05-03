@@ -20,4 +20,4 @@ sleep(2000)
 print "Initialization complete."
 
 ' Start the endless loop!
-player.loop()
+player.run()
