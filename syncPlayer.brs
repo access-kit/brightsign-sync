@@ -5,18 +5,27 @@ function createSyncPlayer(_config as Object) as Object
   player.config = _config
 
   player.cmsState = "idle"
-  player.transportState = "idle"
+  
+  if player.config.syncMode = "leader" or player.config.syncMode = "solo" then
+    player.transportState = "starting"
+  else
+    player.transportState = "idle"
+  end if
 
   ' Set up the http request and response handlers
-  player.request = createObject("roUrlTransfer")
-  player.responsePort = createObject("roMessagePort")
-  player.request.setPort(player.responsePort)
+  player.apiRequest= createObject("roUrlTransfer")
+  player.apiResponsePort = createObject("roMessagePort")
+  player.apiRequest.setPort(player.apiResponsePort )
+
+  player.downloadRequest = createObject("roUrlTransfer")
+  player.downloadResponsePort = createObject("roMessagePort")
+  player.downloadRequest.setPort(player.downloadResponsePort)
 
   ' Give the player methods
-  player.run = run
-  player.sync = sync
-  player.cms = cms
-  player.transport = transport
+  player.run = runMachines
+  player.sync = syncMachine
+  player.cms = cmsMachine
+  player.transport = transportMachine
   player.submitTimestamp = submitTimestamp
   player.markLocalStart = markLocalStart
   player.setupUDP = setupUDP
@@ -68,11 +77,10 @@ function loadVideoFile()
 
   ' Update the server with the newly determined timestamp
   print "Updating duration on server..."
-  m.updateDurationRequest = createObject("roUrlTransfer")
-  m.updateDurationRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/duration")
+  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/duration")
   updateDurationData = "password="+m.config.password+"&"
   updateDurationData = updateDurationData+"duration="+m.duration.toStr()
-  m.updateDurationRequest.asyncPostFromString(updateDurationData)
+  m.apiRequest.asyncPostFromString(updateDurationData)
 end function
 
 function setupUDP()
@@ -98,8 +106,13 @@ function setupVideoWindow()
   m.aspectRatio = m.width / m.height
   _window = ParseJSON(ReadAsciiFile("window.json"))
   if not _window = invalid then
+    print "Loading window mapping from disk..."
+    print(_window)
     m.window = createObject("roRectangle", _window.x,_window.y,_window.w,_window.h)
   else 
+    print "Using default window mapping..."
+    print "Width: ", m.width
+    print "Height: ", m.height
     wFactor = 1920/m.width
     hFactor = 1080/m.height
     factor = hFactor
@@ -119,12 +132,12 @@ function markLocalStart()
   m.lastCycleStartedAt = m.clock.getEpochAsMSString()
 end function
 
-function submitTimestamp() as String
-  m.request.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/timestamp")
-  postString = "password="+m.request.escape(m.config.password)+"&"
-  postString = postString+"lastTimestamp="+m.request.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
-  m.request.asyncPostFromString(postString)
-  ' response = m.responsePort.waitMessage(1000)
+function submitTimestamp() ' as String
+  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/timestamp")
+  postString = "password="+m.apiRequest.escape(m.config.password)+"&"
+  postString = postString+"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
+  m.apiRequest.asyncPostFromString(postString)
+  ' response = m.apiResponsePort .waitMessage(1000)
   ' if not response = invalid then
   '   response = response.getString()
   '   return response
@@ -136,22 +149,25 @@ end function
 function handleUDP()
   msg = m.udpPort.getMessage() 
   if not msg = invalid
-    print "Received new UDP message: ", msg
+    sourceIP = msg.getSourceHost()
     if msg="pause" then
         m.video.pause()
     else if msg="start" then
-      ' if not m.video.getPlaybackPosition() = 0 then
-      '   m.video.stop()
-      '   m.video.seek(0)
-      ' end if
-      m.video.seek(0)
       m.transportState = "starting"
     else if msg="play" then
       m.video.resume()
-    else if msg = "stop" then 
-      m.video.stop()
+    else if msg = "playReset" then 
+      m.clock.markStart()
       m.video.seek(0)
+      seekTime = m.clock.markElapsed()
+      m.video.play()
+      x = m.clock.markElapsed()
+      print "New playback position: (ms)", m.video.getPlaybackPosition()
+      print "seeking to beginning (ms):", seekTime
+      print "seeking to beginning then playing took (ms):", x-seekTime
       m.transportState = "idle"
+    else if msg = "printLoc" then 
+      print "Playback Position: (ms)", m.video.getPlaybackPosition()
     else if msg="seek+" then
       m.video.seek(m.video.getPlaybackPosition()+100)
     else if msg="seek-" then
@@ -235,12 +251,14 @@ function handleUDP()
       print "Writing new window configuration to disk: ", json
       WriteAsciiFile("window.json", json)
     else if msg.getString().tokenize(" ")[0]="changeVideopath" then
-      m.changeVideopath(msg.getString().tokenize(" ")[1])
+      ' m.changeVideopath(msg.getString().tokenize(" ")[1])
     else if msg.getString().tokenize(" ")[0]="replaceContent" then 
-      m.dlContentToFile(msg.getString().tokenize(" ")[1], m.config.videopath)
+      ' m.dlContentToFile(msg.getString().tokenize(" ")[1], m.config.videopath)
     else if msg.getString().tokenize(" ")[0]="downloadContent" then
-      m.dlContentToFile(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
+      ' m.dlContentToFile(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
     else if msg="debug" then
+      STOP
+    else if msg="exit" then
       END
     end if
   end if
@@ -260,8 +278,8 @@ function dlContentToFile(url, filepath)
   m.downloadAlert = createObject("roTextField", 100,100,100,3,0)
   print #m.downloadAlert, "Attempting to download new content from ", url
   print "Command to get new content issued.  Stopping video and attempting to download new content from ", url
-  m.request.setUrl(url)
-  resCode = m.request.getToFile(filepath)
+  m.downloadRequest.setUrl(url)
+  resCode = m.downloadRequest.getToFile(filepath)
   m.downloadAlert.cls()
   if resCode = 200 then
     print "success!"
@@ -272,7 +290,7 @@ function dlContentToFile(url, filepath)
   end if
 end function
 
-function sync()
+function syncMachine()
   if m.clock.state = "idle" then
     if m.video.getPlaybackPosition() > m.duration - 25000 then
       m.clock.state = "starting"
@@ -282,23 +300,24 @@ function sync()
       m.clock.state = "idle"
     end if
   end if
-  m.clock.run()
+  m.clock.step()
 end function
 
-function transport()
+function transportMachine()
   if m.transportState = "idle" then
   else if m.transportState = "starting" then
     if m.syncMode = "leader" then 
       m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
     end if
+    m.video.seek(0)
     m.video.play()
     sleep(35)
     m.markLocalStart()
     m.submitTimestamp()
+    print "Just started a loop.  Now waiting to finish."
     m.transportState = "waiting to finish"
   else if m.transportState = "waiting to finish" then
-    if m.video.getPlaybackPosition.getPlaybackPosition() >= m.duration then 
-      m.video.seek(0)
+    if m.video.getPlaybackPosition() >= m.duration then 
       if m.config.syncMode = "leader" or m.config.syncMode = "solo" then
         m.transportState = "starting"
       else
@@ -308,7 +327,7 @@ function transport()
   end if
 end function
 
-function cms()
+function cmsMachine()
   if m.cmsState = "idle"
   else if m.cmsState = "start downloading content" then
   else if m.cmsState = "downloading content" then
@@ -317,7 +336,7 @@ function cms()
   end if
 end function
 
-function run()
+function runMachines()
   while True: 
     m.handleUDP()
     m.transport()

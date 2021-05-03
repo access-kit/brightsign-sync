@@ -14,6 +14,7 @@ function createClock(_syncURL as String, _password as String) as Object
   timer.perfCounter = createObject("roTimeSpan")
   timer.markStart = markStart
   timer.markElapsed = markElapsed
+  timer.reqTimer = createObject("roTimeSpan")
 
   ' Give it timing functions
   timer.getEpoch = getEpoch
@@ -27,22 +28,22 @@ function createClock(_syncURL as String, _password as String) as Object
   timer.request.setPort(timer.responsePort)
   timer.password = _password
   timer.serverTimeOffset = 0
-  timer.syncResponses = 0
   timer.ntpSyncCycles = 20
 
   ' Give it NTP functions
   timer.calculateOffset = calculateOffset
-  timer.ntpSync = ntpSync
+  timer.blockingNTPSync = blockingNTPSync
   timer.synchronizeTimestamp = synchronizeTimestamp
   
   ' Give it state machine functions
-  timer.run = run
+  timer.step = clockMachine
+  timer.state = "idle"
 
   ' Run an initial sync and get the clock into the same range
   ' Then calculate the new difference
-  timer.ntpSync()
+  timer.blockingNTPSync()
   timer.startupTime.addMilliseconds(timer.serverTimeOffset)
-  timer.ntpSync()
+  timer.blockingNTPSync()
 
   return timer
 end function
@@ -54,7 +55,6 @@ end function
 function markElapsed() as Integer
   return m.perfCounter.totalMilliseconds()
 end function
-
 
 ' Get epoch as table with separate seconds and ms
 function getEpoch() as Object
@@ -92,12 +92,11 @@ function getTimeDiff(time1 as String, time2 as String) as Integer ' NB: Assumes 
   return diff
 end function
 
-function run()
+function clockMachine()
   if m.state = "idle" then 
   else if m.state = "starting" then
     ' Create an empty array to store the offsets in
     m.offsets = createObject("roArray",0,true)
-
     m.state = "requesting an offset"
   else if m.state = "requesting an offset" then
     m.request.setUrl(m.apiEndpoint+"?reqSentAt="+m.getEpochAsMSString())
@@ -107,7 +106,7 @@ function run()
   else if m.state = "awaiting an offset" then
     if m.reqTimer.totalMilliseconds() > 750 then
       m.offsets.push(m.serverTimeOffset)
-      if m.offsets.length < m.ntpSyncCycles then 
+      if m.offsets.count() < m.ntpSyncCycles then 
         m.state = "requesting an offset"
       else 
         m.state = "calculating average"
@@ -150,15 +149,13 @@ function run()
           transitTime = roundTripTime-serverPerfTime
           latency = int(transitTime / 2)
           offset = m.getTimeDiff(reqReceivedAt,reqSentAt)-latency
-          print " "
           print "Latency:", latency
           print "Offset: ", offset
           m.offsets.push(offset)
         else 
-          print "response did not contained expected data"
           m.offsets.push(m.serverTimeOffset)
         end if
-        if m.offsets.length < m.ntpSyncCycles then 
+        if m.offsets.count() < m.ntpSyncCycles then 
           m.state = "requesting an offset"
         else 
           m.state = "calculating average"
@@ -189,7 +186,6 @@ function run()
       end if
     end for
     avgNoOutliers = int(validSum/validOffsetsCount)
-
     ' Set the offset accordingly.
     m.serverTimeOffset = avgNoOutliers
     m.state = "finished"
@@ -263,7 +259,7 @@ function calculateOffset() as Integer
 end function
 
 ' Adjust the clock object
-function ntpSync() as void
+function blockingNTPSync() as void
   ' Create an empty array to store the offsets in
   offsets = createObject("roArray",0,true)
 

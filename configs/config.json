@@ -1,10 +1,10 @@
 {
-  "videopath"  : "edward-and-me.mp4",
-  "id"        : "4",
+  "videopath"  : "avsync.mp4",
+  "id"        : "1",
   "syncURL"   : "http://192.168.0.202:3000",
   "password"  : "syncSign",
   "commandPort": "9500",
   "syncGroup" : "1",
-  "syncMode"  : "follower",
+  "syncMode"  : "solo",
   "playerID"  : "1"
 }
