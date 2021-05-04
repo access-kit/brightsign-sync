@@ -45,7 +45,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 147.0, 480.0, 51.0, 22.0 ],
+					"patching_rect" : [ 42.5, 490.0, 51.0, 22.0 ],
 					"text" : "printLoc"
 				}
 
@@ -57,8 +57,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 184.0, 509.0, 73.0, 22.0 ],
-					"text" : "pauseReset"
+					"patching_rect" : [ 27.5, 556.0, 62.0, 22.0 ],
+					"text" : "playReset"
 				}
 
 			}
@@ -71,18 +71,6 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 61.5, 683.0, 29.5, 22.0 ],
 					"text" : "exit"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-38",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 176.0, 560.0, 31.0, 22.0 ],
-					"text" : "stop"
 				}
 
 			}
@@ -459,23 +447,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 30.999999999999943, 484.0, 118.0, 51.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -483,11 +459,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -495,7 +467,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -567,7 +555,7 @@
 					"patching_rect" : [ 1375.333333333333258, 233.0, 52.5, 22.0 ],
 					"presentation" : 1,
 					"presentation_rect" : [ 154.499999999999943, 508.5, 130.5, 27.0 ],
-					"text" : "239.192.0.1"
+					"text" : "239.192.2.1"
 				}
 
 			}
@@ -642,23 +630,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 147.0, 405.5, 527.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -666,11 +642,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -678,7 +650,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -744,23 +732,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 487.400000000000091, 344.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -768,11 +744,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -780,7 +752,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -822,23 +810,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 487.400000000000091, 275.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -846,11 +822,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -858,7 +830,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -948,23 +936,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 426.0, 309.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -972,11 +948,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -984,7 +956,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1026,23 +1014,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 556.0, 309.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1050,11 +1026,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1062,7 +1034,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1104,23 +1092,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 213.399999999999977, 275.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1128,11 +1104,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1140,7 +1112,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1182,23 +1170,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 147.0, 309.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1206,11 +1182,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1218,7 +1190,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1284,23 +1272,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 277.0, 309.0, 118.000000000000085, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1308,11 +1284,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1320,7 +1292,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1362,23 +1350,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 213.399999999999977, 344.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1386,11 +1362,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1398,7 +1370,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1508,23 +1496,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 291.659999999999968, 121.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1532,11 +1508,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1544,7 +1516,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1586,23 +1574,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 409.939999999999941, 121.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1610,11 +1586,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1622,7 +1594,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1664,23 +1652,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 173.379999999999967, 121.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1688,11 +1664,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1700,7 +1672,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1742,23 +1730,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 646.499999999999886, 121.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1766,11 +1742,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1778,7 +1750,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1844,23 +1832,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 55.099999999999909, 121.0, 118.000000000000085, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1868,11 +1844,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1880,7 +1852,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1922,23 +1910,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 528.219999999999914, 121.0, 118.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"activetextcolor" : 						{
 							"expression" : ""
 						}
 ,
-						"activetextoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"textoffcolor" : 						{
-							"expression" : ""
-						}
-,
-						"focusbordercolor" : 						{
-							"expression" : ""
-						}
-,
-						"activebgcolor" : 						{
+						"bgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1946,11 +1922,7 @@
 							"expression" : ""
 						}
 ,
-						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"activetextcolor" : 						{
+						"activetextoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -1958,7 +1930,23 @@
 							"expression" : ""
 						}
 ,
-						"bgoncolor" : 						{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"textoffcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bgcolor" : 						{
+							"expression" : ""
+						}
+,
+						"focusbordercolor" : 						{
+							"expression" : ""
+						}
+,
+						"activebgoncolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -2327,7 +2315,11 @@
 					"presentation" : 1,
 					"presentation_rect" : [ 56.5, 86.0, 708.0, 26.0 ],
 					"saved_attribute_attributes" : 					{
-						"bgcolor" : 						{
+						"textcolor" : 						{
+							"expression" : ""
+						}
+,
+						"bordercolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -2335,15 +2327,11 @@
 							"expression" : ""
 						}
 ,
-						"textcolor" : 						{
+						"bgcolor" : 						{
 							"expression" : ""
 						}
 ,
 						"activebgoncolor" : 						{
-							"expression" : ""
-						}
-,
-						"bordercolor" : 						{
 							"expression" : ""
 						}
 ,
@@ -2541,13 +2529,6 @@
 					"destination" : [ "obj-1", 0 ],
 					"midpoints" : [ 612.0, 684.0, 125.0, 684.0 ],
 					"source" : [ "obj-34", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-1", 0 ],
-					"source" : [ "obj-38", 0 ]
 				}
 
 			}

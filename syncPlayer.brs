@@ -306,8 +306,9 @@ end function
 function transportMachine()
   if m.transportState = "idle" then
   else if m.transportState = "starting" then
-    if m.syncMode = "leader" then 
+    if m.config.syncMode = "leader" then 
       m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
+      m.udpSocket.sendTo("192.168.0.202",9500,"start")
     end if
     m.video.seek(0)
     m.video.play()

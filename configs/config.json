@@ -5,6 +5,6 @@
   "password"  : "syncSign",
   "commandPort": "9500",
   "syncGroup" : "1",
-  "syncMode"  : "solo",
+  "syncMode"  : "leader",
   "playerID"  : "1"
 }
