@@ -311,13 +311,19 @@ function transportMachine()
       m.udpSocket.sendTo("192.168.0.202",9500,"start")
     end if
     if m.video.getPlaybackPosition() <> 0 
-      print "REMOVE THIS PRINT seeking to 0 since we weren't there already"
       m.video.seek(0)
     end if
     m.video.play()
     sleep(35)
     m.markLocalStart()
-    m.submitTimestamp()
+    m.transportState = "submitting timestamp"
+  else if m.transportState = "submitting timestamp" then
+    if m.config.syncMode = "follower" then
+      sleep((m.config.id.toInt() MOD 10)*5)
+    end if
+    if m.config.updateWeb = "1" then
+      m.submitTimestamp()
+    end if
     print "Just started a loop.  Now waiting to finish."
     m.transportState = "waiting to finish"
   else if m.transportState = "waiting to finish" then

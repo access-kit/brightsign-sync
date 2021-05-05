@@ -1,10 +1,11 @@
 {
   "videopath"  : "avsync.mp4",
-  "id"        : "1",
+  "id"        : "7",
   "syncURL"   : "http://192.168.0.202:3000",
   "password"  : "syncSign",
   "commandPort": "9500",
   "syncGroup" : "1",
-  "syncMode"  : "leader",
-  "playerID"  : "1"
+  "syncMode"  : "follower",
+  "playerID"  : "4",
+  "updateWeb" : "0"
 }
