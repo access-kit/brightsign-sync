@@ -310,7 +310,10 @@ function transportMachine()
       m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
       m.udpSocket.sendTo("192.168.0.202",9500,"start")
     end if
-    m.video.seek(0)
+    if m.video.getPlaybackPosition() <> 0 
+      print "REMOVE THIS PRINT seeking to 0 since we weren't there already"
+      m.video.seek(0)
+    end if
     m.video.play()
     sleep(35)
     m.markLocalStart()
@@ -319,9 +322,17 @@ function transportMachine()
     m.transportState = "waiting to finish"
   else if m.transportState = "waiting to finish" then
     if m.video.getPlaybackPosition() >= m.duration then 
-      if m.config.syncMode = "leader" or m.config.syncMode = "solo" then
+      if m.config.syncMode = "solo" then
+        m.video.seek(0)
         m.transportState = "starting"
-      else
+      else if m.config.syncMode = "leader" then
+        m.video.pause()
+        m.video.seek(0)
+        sleep(30)
+        m.transportState = "starting"
+      else if m.config.syncMode = "follower" then
+        m.video.pause()
+        m.video.seek(0)
         m.transportState = "idle"
       end if
     end if
