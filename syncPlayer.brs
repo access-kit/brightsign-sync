@@ -13,7 +13,8 @@ function createSyncPlayer(_config as Object) as Object
     RebootSystem()
   end if
 
-  player.cmsState = "idle"
+  player.firmwareCMSState = "idle"
+  player.contentCMSState = "idle"
   
   if player.config.syncMode = "leader" or player.config.syncMode = "solo" then
     player.transportState = "starting"
@@ -33,7 +34,8 @@ function createSyncPlayer(_config as Object) as Object
   ' Give the player methods
   player.run = runMachines
   player.sync = syncMachine
-  player.cms = cmsMachine
+  player.firmwareCMS = firmwareCMSMachine
+  player.contentCMS = contentCMSMachine
   player.transport = transportMachine
   player.submitTimestamp = submitTimestamp
   player.markLocalStart = markLocalStart
@@ -397,12 +399,17 @@ function transportMachine()
   end if
 end function
 
-function cmsMachine()
-  if m.cmsState = "idle"
-  else if m.cmsState = "start downloading content" then
-  else if m.cmsState = "downloading content" then
-  else if m.cmsState = "start downloading scripts" then
-  else if m.cmsState = "downloading scripts" then
+function firmwareCMSMachine()
+  if m.firmwareCMSState = "idle"
+  else if m.firmwareCMSState = "start downloading scripts" then
+  else if m.firmwareCMSState = "downloading scripts" then
+  end if
+end function
+
+function contentCMSMachine()
+  if m.contentCMSState = "idle"
+  else if m.contentCMSState = "start downloading content" then
+  else if m.contentCMSState = "downloading content" then
   end if
 end function
 
@@ -411,7 +418,8 @@ function runMachines()
     m.handleUDP()
     m.transport()
     m.sync()
-    m.cms()
+    m.firmwareCMS()
+    m.contentCMS()
   end while
 end function
 
