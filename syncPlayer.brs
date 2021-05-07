@@ -83,6 +83,8 @@ end function
 function loadVideoFile()
   print "Preloading video..."
   print "Preload status:", m.video.preloadFile(m.config.videopath)
+  m.video.seek(0)
+  sleep(40)
   m.duration = m.video.getDuration()-20
 
   ' Update the server with the newly determined timestamp
@@ -160,7 +162,6 @@ end function
 function handleUDP()
   msg = m.udpPort.getMessage() 
   if not msg = invalid
-    m.controllerIP = msg.getSourceHost()
     if msg="pause" then
         m.video.pause()
     else if msg="start" then
@@ -273,8 +274,10 @@ function handleUDP()
       for each key in m.config
         print key, m.config[key]
       end for
+    else if msg = "changeHumanController" then
+      m.controllerIP = msg.getSourceHost()
     else if msg = "query" then
-      if m.config.oscDebug = "on" then
+      if m.config.oscDebug = "on" AND not m.controllerIP = invalid then
         for each key in m.config
           oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key])
           m.udpSocket.sendTo(m.controllerIP, m.config.commandPort.toInt(), oscMsg)
@@ -351,9 +354,9 @@ function transportMachine()
   else if m.transportState = "starting" then
     if m.config.syncMode = "leader" then 
       m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
-      m.udpSocket.sendTo("192.168.0.202",9500,"start")
     end if
     if m.video.getPlaybackPosition() <> 0 
+      print "Seeking to beginning which would cause delay"
       m.video.seek(0)
     end if
     m.video.play()
@@ -377,7 +380,7 @@ function transportMachine()
       else if m.config.syncMode = "leader" then
         m.video.pause()
         m.video.seek(0)
-        sleep(30)
+        sleep(100)
         m.transportState = "starting"
       else if m.config.syncMode = "follower" then
         m.video.pause()

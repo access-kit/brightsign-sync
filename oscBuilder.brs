@@ -3,6 +3,12 @@ Function oscBuildMessage(addr as String, payload) as Object
   addrBytes = CreateObject("roByteArray")
   addrBytes.fromAsciiString(addr)
   REM pad the byte array
+  if addrBytes.count() mod 4 = 0
+    addrBytes.push(0)
+    addrBytes.push(0)
+    addrBytes.push(0)
+    addrBytes.push(0)
+  end if
   while (addrBytes.count() mod 4 <> 0)
     addrBytes.push(0)
   end while
