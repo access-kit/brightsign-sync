@@ -1,7 +1,6 @@
 Function oscBuildMessage(addr as String, payload) as Object
   REM convert the address into a byte array
   addrBytes = CreateObject("roByteArray")
-  addr = "/"+addr
   addrBytes.fromAsciiString(addr)
   REM pad the byte array
   while (addrBytes.count() mod 4 <> 0)

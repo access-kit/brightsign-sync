@@ -1,8 +1,17 @@
 LIBRARY "time.brs"
+LIBRARY "oscBuilder.brs"
 
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
   player.config = _config
+  
+  player.nc = createObject("roNetworkConfiguration", "eth0")
+  if player.nc.getHostName() <> player.config.organization+"-brightsign-"+player.config.playerID then
+    player.nc.setHostName(player.config.organization+"-brightsign-"+player.config.playerID)
+    player.nc.apply()
+    print "Rebooting to update hostname."
+    RebootSystem()
+  end if
 
   player.cmsState = "idle"
   
@@ -31,6 +40,7 @@ function createSyncPlayer(_config as Object) as Object
   player.setupUDP = setupUDP
   player.setupVideoWindow = setupVideoWindow
   player.handleUDP = handleUDP
+  player.updateConfig = updateConfig
   player.dlContentToFile = dlContentToFile
   player.changeVideopath = changeVideopath
   player.loadVideoFile = loadVideoFile
@@ -91,6 +101,7 @@ function setupUDP()
   m.udpSocket.setPort(m.udpPort)
   m.udpSocket.joinMulticastGroup("239.192.0.0")
   m.udpSocket.joinMulticastGroup("239.192.0."+m.config.syncGroup)
+  m.udpSocket.joinMulticastGroup("239.192.4."+m.config.playerID)
   if m.config.syncMode = "leader" then
     m.udpSocket.joinMulticastGroup("239.192.1.0")
     m.udpSocket.joinMulticastGroup("239.192.1."+m.config.syncGroup)
@@ -149,7 +160,7 @@ end function
 function handleUDP()
   msg = m.udpPort.getMessage() 
   if not msg = invalid
-    sourceIP = msg.getSourceHost()
+    m.controllerIP = msg.getSourceHost()
     if msg="pause" then
         m.video.pause()
     else if msg="start" then
@@ -250,17 +261,49 @@ function handleUDP()
       json = FormatJSON(_window)
       print "Writing new window configuration to disk: ", json
       WriteAsciiFile("window.json", json)
+    else if msg.getString().tokenize(" ")[0]="config" then 
+      m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
     else if msg.getString().tokenize(" ")[0]="changeVideopath" then
       ' m.changeVideopath(msg.getString().tokenize(" ")[1])
     else if msg.getString().tokenize(" ")[0]="replaceContent" then 
       ' m.dlContentToFile(msg.getString().tokenize(" ")[1], m.config.videopath)
     else if msg.getString().tokenize(" ")[0]="downloadContent" then
       ' m.dlContentToFile(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
+    else if msg = "printConfig" then
+      for each key in m.config
+        print key, m.config[key]
+      end for
+    else if msg = "query" then
+      if m.config.oscDebug = "on" then
+        for each key in m.config
+          oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key])
+          m.udpSocket.sendTo(m.controllerIP, m.config.commandPort.toInt(), oscMsg)
+        end for
+        ip = m.nc.getCurrentConfig().ip4_address
+        oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/ip",ip.getString())
+        m.udpSocket.sendTo(m.controllerIP,m.config.commandPort.toInt(), oscMsg)
+      end if
     else if msg="debug" then
       STOP
     else if msg="exit" then
       END
     end if
+
+  end if
+end function
+
+function updateConfig(key, value)
+  print "Received a new key:", key
+  print "Received a new value:", value
+  m.config.addReplace(key,value)
+  json = FormatJSON(m.config)
+  print "Saving new configuration..."
+  for each key in m.config
+    print key, m.config[key]
+  end for
+  WriteAsciiFile("config.json", json)
+  if key = "videopath" then
+    ' handler for specific key changes
   end if
 end function
 
