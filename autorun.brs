@@ -1,4 +1,3 @@
-LIBRARY "updateScripts.brs"
 LIBRARY "syncPlayer.brs"
 
 

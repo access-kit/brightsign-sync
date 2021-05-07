@@ -40,6 +40,30 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-41",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 367.477522364684546, 566.0, 299.0, 22.0 ],
+					"text" : "config firmwareURL http://samwolk.info/sync/brightsign"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-37",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 190.0, 300.0, 75.0, 22.0 ],
+					"text" : "ignoreclick 0"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-4",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -1265,7 +1289,6 @@
 					"bordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 					"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 					"fontsize" : 13.0,
-					"hidden" : 1,
 					"id" : "obj-24",
 					"maxclass" : "live.numbox",
 					"numinlets" : 1,
@@ -1313,6 +1336,7 @@
 					"bordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 					"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 					"fontsize" : 13.0,
+					"hidden" : 1,
 					"id" : "obj-23",
 					"maxclass" : "live.numbox",
 					"numinlets" : 1,
@@ -1711,7 +1735,6 @@
 							}
 , 							{
 								"box" : 								{
-									"hidden" : 1,
 									"id" : "obj-14",
 									"linecolor" : [ 0.870588235294118, 0.870588235294118, 0.870588235294118, 1.0 ],
 									"maxclass" : "live.line",
@@ -1740,7 +1763,6 @@
 									"bordercolor" : [ 0.890196078431372, 0.890196078431372, 0.890196078431372, 1.0 ],
 									"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-10",
 									"maxclass" : "live.text",
 									"mode" : 0,
@@ -1819,7 +1841,6 @@
 									"bordercolor" : [ 0.890196078431372, 0.890196078431372, 0.890196078431372, 1.0 ],
 									"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-11",
 									"maxclass" : "live.text",
 									"mode" : 0,
@@ -1898,7 +1919,6 @@
 									"bordercolor" : [ 0.890196078431372, 0.890196078431372, 0.890196078431372, 1.0 ],
 									"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-8",
 									"maxclass" : "live.text",
 									"mode" : 0,
@@ -1977,7 +1997,6 @@
 									"bordercolor" : [ 0.890196078431372, 0.890196078431372, 0.890196078431372, 1.0 ],
 									"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-9",
 									"maxclass" : "live.text",
 									"mode" : 0,
@@ -2080,7 +2099,6 @@
 									"bordercolor" : [ 0.890196078431372, 0.890196078431372, 0.890196078431372, 1.0 ],
 									"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-5",
 									"maxclass" : "live.text",
 									"mode" : 0,
@@ -2159,7 +2177,6 @@
 									"bordercolor" : [ 0.890196078431372, 0.890196078431372, 0.890196078431372, 1.0 ],
 									"focusbordercolor" : [ 1.0, 0.996078431372549, 0.996078431372549, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-2",
 									"maxclass" : "live.text",
 									"mode" : 0,
@@ -2234,7 +2251,6 @@
 									"fontface" : 3,
 									"fontname" : "Roboto Mono Light",
 									"fontsize" : 24.0,
-									"hidden" : 1,
 									"id" : "obj-36",
 									"maxclass" : "comment",
 									"numinlets" : 1,
@@ -2564,7 +2580,6 @@
 									"bgcolor" : [ 0.631372549019608, 0.615686274509804, 0.615686274509804, 1.0 ],
 									"bordercolor" : [ 1.0, 0.988235294117647, 0.988235294117647, 1.0 ],
 									"fontsize" : 13.0,
-									"hidden" : 1,
 									"id" : "obj-22",
 									"maxclass" : "live.tab",
 									"num_lines_patching" : 1,
@@ -2619,7 +2634,6 @@
 									"bgcolor" : [ 0.2, 0.2, 0.2, 0.0 ],
 									"border" : 1,
 									"bordercolor" : [ 1.0, 1.0, 1.0, 0.99 ],
-									"hidden" : 1,
 									"id" : "obj-16",
 									"ignoreclick" : 0,
 									"maxclass" : "panel",
@@ -4682,6 +4696,30 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-2", 0 ],
+					"order" : 1,
+					"source" : [ "obj-37", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-3", 0 ],
+					"order" : 2,
+					"source" : [ "obj-37", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-7", 0 ],
+					"order" : 0,
+					"source" : [ "obj-37", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-132", 0 ],
 					"source" : [ "obj-38", 0 ]
 				}
@@ -4698,6 +4736,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-135", 0 ],
 					"source" : [ "obj-40", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-31", 0 ],
+					"source" : [ "obj-41", 0 ]
 				}
 
 			}

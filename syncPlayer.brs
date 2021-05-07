@@ -41,6 +41,7 @@ function createSyncPlayer(_config as Object) as Object
   player.setupVideoWindow = setupVideoWindow
   player.handleUDP = handleUDP
   player.updateConfig = updateConfig
+  player.updateScripts = updateScripts
   player.dlContentToFile = dlContentToFile
   player.changeVideopath = changeVideopath
   player.loadVideoFile = loadVideoFile
@@ -286,6 +287,8 @@ function handleUDP()
         oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/ip",ip.getString())
         m.udpSocket.sendTo(m.controllerIP,m.config.commandPort.toInt(), oscMsg)
       end if
+    else if msg = "flash" then
+      m.updateScripts()
     else if msg="debug" then
       STOP
     else if msg="exit" then
@@ -370,7 +373,7 @@ function transportMachine()
     if m.config.syncMode = "follower" then
       sleep((m.config.id.toInt() MOD 10)*5)
     end if
-    if m.config.updateWeb = "1" then
+    if m.config.updateWeb = "on" then
       m.submitTimestamp()
     end if
     print "Just started a loop.  Now waiting to finish."
@@ -410,4 +413,39 @@ function runMachines()
     m.sync()
     m.cms()
   end while
+end function
+
+function updateScripts() 
+    m.video.stop()
+    print "Attempting to download new scripts from "+m.config.firmwareURL+"/..."
+    resPort = createObject("roMessagePort")
+    request = createObject("roUrlTransfer")
+    request.setPort(resPort)
+    print "Getting autorun..."
+    autorunslug = m.config.firmwareURL+"/autorun.brs"
+    request.setUrl(autorunslug)
+    request.asyncGetToFile("autorun.brs")
+    resPort.waitMessage(2000)
+    print "Getting sync player library..."
+    syncPlayerslug = m.config.firmwareURL+"/syncPlayer.brs"
+    request.setUrl(syncplayerslug)
+    request.getToFile("syncPlayer.brs")
+    resPort.waitMessage(2000)
+    print "Getting time library..."
+    timeslug = m.config.firmwareURL+"/time.brs"
+    request.setUrl(timeslug)
+    request.getToFile("time.brs")
+    resPort.waitMessage(2000)
+    print "Getting OSC library..."
+    oscslug = m.config.firmwareURL+"/oscBuilder.brs"
+    request.setUrl(oscslug)
+    request.getToFile("oscBuilder.brs")
+    resPort.waitMessage(2000)
+    print "Getting content updater..."
+    getContentslug = m.config.firmwareURL+"/getContent.brs"
+    request.setUrl(getContentslug)
+    request.getToFile("getContent.brs")
+    resPort.waitMessage(2000)
+    print "Attempt to update scripts has completed."
+    RestartScript()
 end function
