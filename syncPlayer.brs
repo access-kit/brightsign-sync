@@ -279,7 +279,7 @@ function handleUDP()
     else if msg = "query" then
       if m.config.oscDebug = "on" AND not m.controllerIP = invalid then
         for each key in m.config
-          oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key])
+          oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key].getString())
           m.udpSocket.sendTo(m.controllerIP, m.config.commandPort.toInt(), oscMsg)
         end for
         ip = m.nc.getCurrentConfig().ip4_address
@@ -298,6 +298,9 @@ end function
 function updateConfig(key, value)
   print "Received a new key:", key
   print "Received a new value:", value
+  if type(value) = "roString" then
+    value = value.getString()
+  end if
   m.config.addReplace(key,value)
   json = FormatJSON(m.config)
   print "Saving new configuration..."
