@@ -44,6 +44,7 @@ function createSyncPlayer(_config as Object) as Object
   player.handleUDP = handleUDP
   player.updateConfig = updateConfig
   player.updateScripts = updateScripts
+  player.updateContent = updateContent
   player.dlContentToFile = dlContentToFile
   player.changeVideopath = changeVideopath
   player.loadVideoFile = loadVideoFile
@@ -267,12 +268,6 @@ function handleUDP()
       WriteAsciiFile("window.json", json)
     else if msg.getString().tokenize(" ")[0]="config" then 
       m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
-    else if msg.getString().tokenize(" ")[0]="changeVideopath" then
-      ' m.changeVideopath(msg.getString().tokenize(" ")[1])
-    else if msg.getString().tokenize(" ")[0]="replaceContent" then 
-      ' m.dlContentToFile(msg.getString().tokenize(" ")[1], m.config.videopath)
-    else if msg.getString().tokenize(" ")[0]="downloadContent" then
-      ' m.dlContentToFile(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
     else if msg = "printConfig" then
       for each key in m.config
         print key, m.config[key]
@@ -291,6 +286,10 @@ function handleUDP()
       end if
     else if msg = "flash" then
       m.updateScripts()
+    else if msg = "updateContent" then
+      m.updateContent()
+    else if msg = "reload" then
+      RestartScript()
     else if msg="debug" then
       STOP
     else if msg="exit" then
@@ -449,11 +448,14 @@ function updateScripts()
     request.setUrl(oscslug)
     request.getToFile("oscBuilder.brs")
     resPort.waitMessage(2000)
-    print "Getting content updater..."
-    getContentslug = m.config.firmwareURL+"/getContent.brs"
-    request.setUrl(getContentslug)
-    request.getToFile("getContent.brs")
-    resPort.waitMessage(2000)
     print "Attempt to update scripts has completed."
     RestartScript()
+end function
+
+function updateContent()
+  m.video.stop()
+  request = createObject("roUrlTransfer")
+  request.setUrl(m.config.videoURL)
+  request.getToFile(m.config.videopath)
+  RestartScript()
 end function
