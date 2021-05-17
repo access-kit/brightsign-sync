@@ -5,6 +5,9 @@ LIBRARY "syncPlayer.brs"
 print "---------------------------- Brightsign Sync Looper ----------------------------"
 print ""
 
+factoryReset()
+setupRegistry()
+
 print "Loading options from config.json..."
 config = ParseJSON(ReadAsciiFile("config.json"))
 print config

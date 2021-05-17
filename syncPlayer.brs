@@ -93,7 +93,7 @@ function loadVideoFile()
 
   ' Update the server with the newly determined timestamp
   print "Updating duration on server..."
-  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/duration")
+  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/duration")
   updateDurationData = "password="+m.config.password+"&"
   updateDurationData = updateDurationData+"duration="+m.duration.toStr()
   m.apiRequest.asyncPostFromString(updateDurationData)
@@ -150,7 +150,7 @@ function markLocalStart()
 end function
 
 function submitTimestamp() ' as String
-  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.id+"/timestamp")
+  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/timestamp")
   postString = "password="+m.apiRequest.escape(m.config.password)+"&"
   postString = postString+"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.apiRequest.asyncPostFromString(postString)
@@ -372,7 +372,7 @@ function transportMachine()
     m.transportState = "submitting timestamp"
   else if m.transportState = "submitting timestamp" then
     if m.config.syncMode = "follower" then
-      sleep((m.config.id.toInt() MOD 10)*5)
+      sleep((m.config.workID.toInt() MOD 10)*5)
     end if
     if m.config.updateWeb = "on" then
       m.submitTimestamp()
@@ -458,4 +458,72 @@ function updateContent()
   request.setUrl(m.config.videoURL)
   request.getToFile(m.config.videopath)
   RestartScript()
+end function
+
+function setupRegistry()
+  syncSignReg = createObject("roRegistrySection", "syncSign")
+  if syncSignReg.read("remoteAccessConfigured") <> "true" then
+    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+    meta99 = CreateObject("roAssociativeArray")
+    meta99.AddReplace("CharWidth", 30)
+    meta99.AddReplace("CharHeight", 50)
+    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
+
+    tf99.SendBlock("Setting up registries.")
+    sleep(2000)
+    tf99.Cls()
+
+    reg = CreateObject("roRegistrySection", "networking")
+    reg.write("ssh","22")
+
+    n=CreateObject("roNetworkConfiguration", 0)
+
+    n.SetLoginPassword("syncSign")
+    n.Apply()
+    reg.flush()
+
+    nc = CreateObject("roNetworkConfiguration", 0)
+    nc.SetupDWS({open:"syncSign"})
+
+    ' regSec = CreateObject("roRegistrySection", "networking")
+    ' regSec.Write("ptp_domain", "0")
+    ' regSec.Flush()
+
+    tf99.SendBlock("Registries written and flushed.  Restarting and loading main file.")
+    syncSignReg.write("remoteAccessConfigured", "true")
+    syncSignReg.flush()
+    sleep(4000)
+    RebootSystem()
+  end if 
+end function
+
+function factoryReset()
+  syncSignReg = createObject("roRegistrySection", "syncSign")
+  if syncSignReg.read("resetComplete") <> "true" then
+    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+    meta99 = CreateObject("roAssociativeArray")
+    meta99.AddReplace("CharWidth", 30)
+    meta99.AddReplace("CharHeight", 50)
+    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
+
+    tf99.SendBlock("Deleting Recovery settings.")
+    sleep(2000)
+    tf99.Cls()
+    if type(registry) <> "roRegistry" then registry = CreateObject("roRegistry")
+
+    mfgn=createobject("roMfgtest")
+    mfgn.FactoryReset()
+    registry.Flush()
+
+
+    tf99.SendBlock("Factory reset complete.  Restarting and then will configure SSH & DWS.")
+    syncSignReg.write("resetComplete","true")
+    syncSignReg.flush()
+    sleep(4000)
+    RebootSystem()
+  end if
 end function

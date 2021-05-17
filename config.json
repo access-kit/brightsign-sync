@@ -1,11 +1,14 @@
 {
-  "videopath"  : "avsync.mp4",
-  "id"        : "7",
-  "syncURL"   : "http://192.168.0.202:3000",
-  "password"  : "syncSign",
-  "commandPort": "9500",
-  "syncGroup" : "1",
-  "syncMode"  : "follower",
-  "playerID"  : "4",
-  "updateWeb" : "0"
+    "commandPort":"9500",
+    "firmwareURL":"http://samwolk.info/sync/brightsign",
+    "workID":"1",
+    "organization":"shed",
+    "oscDebug":"on",
+    "password":"syncSign",
+    "playerID":"1",
+    "syncGroup":"1",
+    "syncMode":"solo",
+    "syncURL":"http://192.168.0.32:3000",
+    "updateWeb":"on",
+    "videopath":"flatwing.mp4"
 }
