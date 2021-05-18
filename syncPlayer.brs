@@ -118,8 +118,14 @@ function setupUDP()
 end function
 
 function setupVideoWindow()
-  m.width = m.video.getStreamInfo().videoWidth
-  m.height = m.video.getStreamInfo().videoHeight
+  probeData = m.video.probeFile(m.config.videopath)
+
+  m.width = probeData.videoWidth
+  m.height = probeData.videoHeight
+  if m.width = 0 or m.height = 0 then
+    m.width = 1920
+    m.height = 1080
+  end if
   m.aspectRatio = m.width / m.height
   _window = ParseJSON(ReadAsciiFile("window.json"))
   if not _window = invalid then
@@ -184,18 +190,10 @@ function handleUDP()
       m.transportState = "idle"
     else if msg = "printLoc" then 
       print "Playback Position: (ms)", m.video.getPlaybackPosition()
-    else if msg="seek+" then
-      m.video.seek(m.video.getPlaybackPosition()+100)
-    else if msg="seek-" then
-      m.video.seek(m.video.getPlaybackPosition()-100)
-    else if msg="seek++" then
-      m.video.seek(m.video.getPlaybackPosition()+1000)
-    else if msg="seek--" then
-      m.video.seek(m.video.getPlaybackPosition()-1000)
-    else if msg="seek+++" then
-      m.video.seek(m.video.getPlaybackPosition()+10000)
-    else if msg="seek---" then
-      m.video.seek(m.video.getPlaybackPosition()-10000)
+    else if msg.getString().tokenize(" ")[0]="seek" then 
+      m.video.pause()
+      seekPositionMS = msg.getString().tokenize(" ")[1]
+      m.video.seek(seekPositionMS)
     else if msg="ff" then
       m.video.setPlaybackSpeed(2)
     else if msg="fff" then
@@ -454,14 +452,75 @@ end function
 
 function updateContent()
   m.video.stop()
+  meta99 = CreateObject("roAssociativeArray")
+  meta99.AddReplace("CharWidth", 30)
+  meta99.AddReplace("CharHeight", 50)
+  meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+  meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+  tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
+
+  tf99.SendBlock("Downloading new content.")
+  sleep(2000)
   request = createObject("roUrlTransfer")
   request.setUrl(m.config.videoURL)
   request.getToFile(m.config.videopath)
   RestartScript()
 end function
 
-function setupRegistry()
+function bootSetup()
+  initStatus = ParseJSON(ReadAsciiFile("init.json"))
   syncSignReg = createObject("roRegistrySection", "syncSign")
+  n = CreateObject("roNetworkConfiguration", 0)
+  registry = CreateObject("roRegistry")
+  shouldReboot = False
+  
+  ' Exit to Shell
+  if initStatus.boottoshell = "true" then
+    END
+  end if
+
+  ' Factory reset
+  if initStatus.justfactoryreset = "true" then
+    initStatus.justfactoryreset  = "false"
+    WriteAsciiFile("init.json",FormatJSON(initStatus))
+    syncSignReg.write("resetComplete","true")
+    syncSignReg.flush()
+  else 
+    if syncSignReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
+      if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+      meta99 = CreateObject("roAssociativeArray")
+      meta99.AddReplace("CharWidth", 30)
+      meta99.AddReplace("CharHeight", 50)
+      meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+      meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+      tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
+
+      tf99.SendBlock("Deleting Recovery settings.")
+      sleep(2000)
+      tf99.Cls()
+
+      mfgn=createobject("roMfgtest")
+      mfgn.FactoryReset()
+      registry.Flush()
+      initStatus.justfactoryreset = "true"
+      initStatus.shouldfactoryreset = "false"
+      WriteAsciiFile("init.json", FormatJSON(initStatus))
+      
+
+      tf99.SendBlock("Factory reset complete.  Restarting and then will configure network")
+      sleep(4000)
+      RebootSystem()
+    end if
+  end if
+
+  if not n.getCurrentConfig().dhcp then
+    n.setDHCP()
+    n.apply()
+    registry.flush()
+    shouldReboot = true
+  end if
+
+  ' DHC SSH and DWS
   if syncSignReg.read("remoteAccessConfigured") <> "true" then
     if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
     meta99 = CreateObject("roAssociativeArray")
@@ -478,14 +537,12 @@ function setupRegistry()
     reg = CreateObject("roRegistrySection", "networking")
     reg.write("ssh","22")
 
-    n=CreateObject("roNetworkConfiguration", 0)
-
     n.SetLoginPassword("syncSign")
+    n.SetupDWS({open:"syncSign"})
+
     n.Apply()
     reg.flush()
 
-    nc = CreateObject("roNetworkConfiguration", 0)
-    nc.SetupDWS({open:"syncSign"})
 
     ' regSec = CreateObject("roRegistrySection", "networking")
     ' regSec.Write("ptp_domain", "0")
@@ -495,35 +552,11 @@ function setupRegistry()
     syncSignReg.write("remoteAccessConfigured", "true")
     syncSignReg.flush()
     sleep(4000)
-    RebootSystem()
+    shouldReboot = true
   end if 
-end function
 
-function factoryReset()
-  syncSignReg = createObject("roRegistrySection", "syncSign")
-  if syncSignReg.read("resetComplete") <> "true" then
-    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-    meta99 = CreateObject("roAssociativeArray")
-    meta99.AddReplace("CharWidth", 30)
-    meta99.AddReplace("CharHeight", 50)
-    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
-    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
-
-    tf99.SendBlock("Deleting Recovery settings.")
-    sleep(2000)
-    tf99.Cls()
-    if type(registry) <> "roRegistry" then registry = CreateObject("roRegistry")
-
-    mfgn=createobject("roMfgtest")
-    mfgn.FactoryReset()
-    registry.Flush()
-
-
-    tf99.SendBlock("Factory reset complete.  Restarting and then will configure SSH & DWS.")
-    syncSignReg.write("resetComplete","true")
-    syncSignReg.flush()
-    sleep(4000)
+  if shouldReboot then
     RebootSystem()
   end if
+
 end function
