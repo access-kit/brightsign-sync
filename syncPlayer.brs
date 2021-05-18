@@ -421,33 +421,43 @@ function runMachines()
 end function
 
 function updateScripts() 
-    m.video.stop()
-    print "Attempting to download new scripts from "+m.config.firmwareURL+"/..."
-    resPort = createObject("roMessagePort")
-    request = createObject("roUrlTransfer")
-    request.setPort(resPort)
-    print "Getting autorun..."
-    autorunslug = m.config.firmwareURL+"/autorun.brs"
-    request.setUrl(autorunslug)
-    request.asyncGetToFile("autorun.brs")
-    resPort.waitMessage(2000)
-    print "Getting sync player library..."
-    syncPlayerslug = m.config.firmwareURL+"/syncPlayer.brs"
-    request.setUrl(syncplayerslug)
-    request.getToFile("syncPlayer.brs")
-    resPort.waitMessage(2000)
-    print "Getting time library..."
-    timeslug = m.config.firmwareURL+"/time.brs"
-    request.setUrl(timeslug)
-    request.getToFile("time.brs")
-    resPort.waitMessage(2000)
-    print "Getting OSC library..."
-    oscslug = m.config.firmwareURL+"/oscBuilder.brs"
-    request.setUrl(oscslug)
-    request.getToFile("oscBuilder.brs")
-    resPort.waitMessage(2000)
-    print "Attempt to update scripts has completed."
-    RestartScript()
+  m.video.stop()
+  print "Attempting to download new scripts from "+m.config.firmwareURL+"/..."
+  
+  meta99 = CreateObject("roAssociativeArray")
+  meta99.AddReplace("CharWidth", 30)
+  meta99.AddReplace("CharHeight", 50)
+  meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+  meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+  tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
+  tf99.SendBlock("Downloading new scripts.")
+  sleep(2000)
+
+  resPort = createObject("roMessagePort")
+  request = createObject("roUrlTransfer")
+  request.setPort(resPort)
+  print "Getting autorun..."
+  autorunslug = m.config.firmwareURL+"/autorun.brs"
+  request.setUrl(autorunslug)
+  request.asyncGetToFile("autorun.brs")
+  resPort.waitMessage(2000)
+  print "Getting sync player library..."
+  syncPlayerslug = m.config.firmwareURL+"/syncPlayer.brs"
+  request.setUrl(syncplayerslug)
+  request.getToFile("syncPlayer.brs")
+  resPort.waitMessage(2000)
+  print "Getting time library..."
+  timeslug = m.config.firmwareURL+"/time.brs"
+  request.setUrl(timeslug)
+  request.getToFile("time.brs")
+  resPort.waitMessage(2000)
+  print "Getting OSC library..."
+  oscslug = m.config.firmwareURL+"/oscBuilder.brs"
+  request.setUrl(oscslug)
+  request.getToFile("oscBuilder.brs")
+  resPort.waitMessage(2000)
+  print "Attempt to update scripts has completed."
+  RestartScript()
 end function
 
 function updateContent()
