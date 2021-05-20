@@ -5,7 +5,7 @@ function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
   player.config = _config
   
-  player.nc = createObject("roNetworkConfiguration", "eth0")
+  player.nc = createObject("roNetworkConfiguration", 0)
   if player.nc.getHostName() <> player.config.organization+"-brightsign-"+player.config.playerID then
     player.nc.setHostName(player.config.organization+"-brightsign-"+player.config.playerID)
     player.nc.apply()
@@ -76,27 +76,68 @@ function createSyncPlayer(_config as Object) as Object
   ' UDP Setup
   player.setupUDP()
 
-  ' Window setup
-  print "Sleeping so that video dimensions can be parsed..."
-  sleep(1000)
-  player.setupVideoWindow()
   
   return player
 end function
 
 function loadVideoFile()
   print "Preloading video..."
-  print "Preload status:", m.video.preloadFile(m.config.videopath)
-  m.video.seek(0)
-  sleep(40)
-  m.duration = m.video.getDuration()-20
+  if MatchFiles("/", "*.mp4").count() = 0 then
+    print("!!!! WARNING !!!!")
+    print("!!!! No MP4 files found !!!!")
+    m.transportState = "noValidVideo"
+    m.clock.state = "idle"
+    m.meta99 = CreateObject("roAssociativeArray")
+    m.meta99.AddReplace("CharWidth", 30)
+    m.meta99.AddReplace("CharHeight", 50)
+    m.meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+    m.meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+    m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
+    m.tf99.SendBlock("No valid video files found!")
+    sleep(5000)
+  else 
+    if m.video.getFilePlayability(m.config.videopath).video <> "playable" then 
+      mp4List = MatchFiles("/","*.mp4")
+      playable = False
+      for each file in mp4List
+        if m.video.getFilePlayability(file).video = "playable" then
+          m.updateConfig("videopath",file)
+          playable = True
+          EXIT FOR
+        end if
+      end for
+      if not playable then
+        print("!!!! WARNING !!!!")
+        print("!!!! MP4s exist but are not playable videos !!!")
+        m.transportState = "noValidVideo"
+        m.clock.state = "idle"
+        m.meta99 = CreateObject("roAssociativeArray")
+        m.meta99.AddReplace("CharWidth", 30)
+        m.meta99.AddReplace("CharHeight", 50)
+        m.meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+        m.meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+        m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
+        m.tf99.SendBlock("No valid video files found!")
+        sleep(5000)
+      end if
+    end if
+    print "Preload status:", m.video.preloadFile(m.config.videopath)
+    m.video.seek(0)
+    sleep(40)
+    m.duration = m.video.getDuration()-20
 
-  ' Update the server with the newly determined timestamp
-  print "Updating duration on server..."
-  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/duration")
-  updateDurationData = "password="+m.config.password+"&"
-  updateDurationData = updateDurationData+"duration="+m.duration.toStr()
-  m.apiRequest.asyncPostFromString(updateDurationData)
+    ' Update the server with the newly determined timestamp
+    print "Updating duration on server..."
+    m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/duration")
+    updateDurationData = "password="+m.config.password+"&"
+    updateDurationData = updateDurationData+"duration="+m.duration.toStr()
+    m.apiRequest.asyncPostFromString(updateDurationData)
+
+    ' Window setup
+    print "Sleeping so that video dimensions can be parsed..."
+    sleep(1000)
+    m.setupVideoWindow()
+  end if
 end function
 
 function setupUDP()
@@ -193,7 +234,7 @@ function handleUDP()
     else if msg.getString().tokenize(" ")[0]="seek" then 
       m.video.pause()
       seekPositionMS = msg.getString().tokenize(" ")[1]
-      m.video.seek(seekPositionMS)
+      m.video.seek(seekPositionMS.toInt())
     else if msg="ff" then
       m.video.setPlaybackSpeed(2)
     else if msg="fff" then
@@ -343,7 +384,7 @@ end function
 
 function syncMachine()
   if m.clock.state = "idle" then
-    if m.video.getPlaybackPosition() > m.duration - 25000 then
+    if m.transportState <> "noValidVideo" and m.video.getPlaybackPosition() > m.duration - 25000 then
       m.clock.state = "starting"
     end if
   else if m.clock.state = "finished" then
@@ -355,7 +396,10 @@ function syncMachine()
 end function
 
 function transportMachine()
-  if m.transportState = "idle" then
+  if m.transportState = "noValidVideo" then
+    m.tf99.SendBlock("No valid video files found!")
+    sleep(200)
+  else if m.transportState = "idle" then
   else if m.transportState = "starting" then
     if m.config.syncMode = "leader" then 
       m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
@@ -486,6 +530,8 @@ function bootSetup()
   
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
+    initstatus.boottoshell = "false"
+    WriteAsciiFile("init.json",FormatJSON(initStatus))
     END
   end if
 
