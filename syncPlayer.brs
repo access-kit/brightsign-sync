@@ -17,6 +17,7 @@ function createSyncPlayer(_config as Object) as Object
   player.contentCMSState = "idle"
   
   if player.config.syncMode = "leader" or player.config.syncMode = "solo" then
+    sleep(3000)
     player.transportState = "starting"
   else
     player.transportState = "idle"
@@ -314,7 +315,10 @@ function handleUDP()
     else if msg = "changeHumanController" then
       m.controllerIP = msg.getSourceHost()
     else if msg = "query" then
+      print "received query request"
+      print m.controllerIP
       if m.config.oscDebug = "on" AND not m.controllerIP = invalid then
+        print ("attempting to transmit config data to: "+m.controllerIP)
         for each key in m.config
           oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key].getString())
           m.udpSocket.sendTo(m.controllerIP, m.config.commandPort.toInt(), oscMsg)
@@ -569,10 +573,60 @@ function bootSetup()
     end if
   end if
 
+  testReq = createObject("rourltransfer")
+  testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
+  testReqPort = createObject("roMessagePort")
+  testReq.setPort(testReqPort)
+  testReq.asyncGetToString()
+  msg = testReqPort.waitmessage(3000)
+  if type(msg) <> "roUrlEvent" then 
+    print("Internet check failed because request timed out.")
+    if initstatus.justnetworkrebooted = "true"
+      print("Already rebooted once, so continuing on without internet.")
+    else
+      initStatus.justnetworkrebooted = "true"
+      WriteAsciiFile("init.json",FormatJSON(initStatus))
+      print("Rebooting once to attempt to reconnect because no response received.")
+      sleep(10000)
+      RebootSystem()
+    end if
+  else 
+    if msg.getResponseCode() <> 200 then
+      print("Internet check failed.")
+      if initstatus.justnetworkrebooted = "true"
+        print("Already rebooted once, so continuing on without internet.")
+      else
+        initStatus.justnetworkrebooted = "true"
+        WriteAsciiFile("init.json",FormatJSON(initStatus))
+        print("Rebooting once to attempt to reconnect because network check returned false code")
+        sleep(10000)
+        RebootSystem()
+      end if
+    else 
+      print("internet check is successful")
+    end if
+  end if
+  initstatus.justnetworkrebooted = "false"
+  WriteAsciiFile("init.json",FormatJSON(initStatus))
+
+  ' if n.testinternetconnectivity().ok = false then
+  '   print("Internet check failed.  Attempting to set to null ip and then back to dhcp.")
+  '   n.setIP4Address("240.0.0.0") ' Null IP Address
+  '   n.apply()
+  '   registry.flush()
+  '   sleep(5000)
+  '   n.setDHCP()
+  '   n.apply()
+  '   registry.flush()
+  '   sleep(5000)
+  '   print n.testinternetconnectivity()
+  ' end if
+
   if not n.getCurrentConfig().dhcp then
     n.setDHCP()
     n.apply()
     registry.flush()
+    print("Should reboot because dhcp was not configured")
     shouldReboot = true
   end if
 
