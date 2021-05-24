@@ -4,6 +4,11 @@ LIBRARY "oscBuilder.brs"
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
   player.config = _config
+
+  if player.config.volume = invalid then
+    player.config.volume = "15"
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+  end if
   
   player.nc = createObject("roNetworkConfiguration", 0)
   if player.nc.getHostName() <> player.config.organization+"-brightsign-"+player.config.playerID then
@@ -69,7 +74,7 @@ function createSyncPlayer(_config as Object) as Object
   player.video = createObject("roVideoPlayer")
   player.video.setPort(player.videoPort)
   player.video.setViewMode(0) 
-  player.video.setVolume(15) ' see config stuff in master from zachpoff
+  player.video.setVolume(player.config.volume.toInt()) ' see config stuff in master from zachpoff
 
   ' Load the currently selected video and report its duration
   player.loadVideoFile()
@@ -308,6 +313,7 @@ function handleUDP()
       WriteAsciiFile("window.json", json)
     else if msg.getString().tokenize(" ")[0]="config" then 
       m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
+      m.video.setVolume(m.config.volume.toInt())
     else if msg = "printConfig" then
       for each key in m.config
         print key, m.config[key]
