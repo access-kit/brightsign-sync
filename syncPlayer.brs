@@ -146,7 +146,11 @@ function loadVideoFile()
     print "Updating duration on server..."
     m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/duration")
     updateDurationData = "password="+m.config.password+"&"
-    updateDurationData = updateDurationData+"duration="+m.duration.toStr()
+    durationWithDelay = m.duration
+    if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
+      durationWithDelay = durationWithDelay + m.config.looppointleaderdelay
+    end if
+    updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
     m.apiRequest.asyncPostFromString(updateDurationData)
 
     ' Window setup
