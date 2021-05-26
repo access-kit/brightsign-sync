@@ -151,7 +151,9 @@ function loadVideoFile()
       durationWithDelay = durationWithDelay + m.config.looppointleaderdelay
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
-    m.apiRequest.asyncPostFromString(updateDurationData)
+    if m.config.updateWeb = "on" then 
+      m.apiRequest.asyncPostFromString(updateDurationData)
+    end if 
 
     ' Window setup
     print "Sleeping so that video dimensions can be parsed..."
