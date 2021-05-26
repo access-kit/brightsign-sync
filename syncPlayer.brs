@@ -20,6 +20,7 @@ function createSyncPlayer(_config as Object) as Object
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
   
+  
   player.nc = createObject("roNetworkConfiguration", 0)
   if player.nc.getHostName() <> player.config.organization+"-brightsign-"+player.config.playerID then
     player.nc.setHostName(player.config.organization+"-brightsign-"+player.config.playerID)
@@ -148,7 +149,7 @@ function loadVideoFile()
     updateDurationData = "password="+m.config.password+"&"
     durationWithDelay = m.duration
     if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
-      durationWithDelay = durationWithDelay + m.config.looppointleaderdelay
+      durationWithDelay = durationWithDelay + m.config.looppointleaderdelay.toInt()
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
     if m.config.updateWeb = "on" then 
@@ -195,6 +196,7 @@ function setupVideoWindow()
     print "Loading window mapping from disk..."
     print(_window)
     m.window = createObject("roRectangle", _window.x,_window.y,_window.w,_window.h)
+    m.transform = _window.transform
   else 
     print "Using default window mapping..."
     print "Width: ", m.width
@@ -210,8 +212,10 @@ function setupVideoWindow()
       hOffset = ( 1080-factor*m.height )/2
     end if
     m.window = createObject("roRectangle",wOffset,hOffset, m.width * factor , m.height* factor )
+    m.transform = "identity"
   end if
   m.video.setRectangle(m.window)
+  ' m.video.setTransform(m.transform)
 end function
 
 function markLocalStart()
@@ -307,12 +311,16 @@ function handleUDP()
     else if msg="nudgeRight" then 
       m.window.setX(m.window.getX() + 5)
       m.video.setRectangle(m.window)
+    else if msg="rot180" then
+      m.transform = "rot180"
+      ' m.video.setTransform(m.transform)
     else if msg="saveWindow" then 
       _window = createObject("roAssociativeArray")
       _window.x = m.window.getX()
       _window.y = m.window.getY()
       _window.w = m.window.getWidth()
       _window.h = m.window.getHeight()
+      _window.transform = m.transform
       json = FormatJSON(_window)
       print "Writing new window configuration to disk: ", json
       WriteAsciiFile("window.json", json)
@@ -324,6 +332,7 @@ function handleUDP()
       _window.y = m.window.getY()
       _window.w = m.window.getWidth()
       _window.h = m.window.getHeight()
+      _window.transform = "identity"
       json = FormatJSON(_window)
       print "Writing new window configuration to disk: ", json
       WriteAsciiFile("window.json", json)
