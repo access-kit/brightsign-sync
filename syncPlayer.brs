@@ -10,13 +10,13 @@ function createSyncPlayer(_config as Object) as Object
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if
 
-  if player.config.startupLeaderDelay = invalid then
-    player.config.startupLeaderDelay = "45000"
+  if player.config.startupleaderdelay = invalid then
+    player.config.startupleaderdelay = "45000"
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
 
-  if player.config.loopPointLeaderDelay = invalid then
-    player.config.loopPointLeaderDelay = "1000"
+  if player.config.looppointleaderdelay = invalid then
+    player.config.looppointleaderdelay = "100"
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
   
@@ -32,7 +32,7 @@ function createSyncPlayer(_config as Object) as Object
   player.contentCMSState = "idle"
   
   if player.config.syncMode = "leader" or player.config.syncMode = "solo" then
-    sleep(player.config.startupLeaderDelay.toInt())
+    sleep(player.config.startupleaderdelay.toInt())
     player.transportState = "starting"
   else
     player.transportState = "idle"
@@ -449,7 +449,7 @@ function transportMachine()
       else if m.config.syncMode = "leader" then
         m.video.pause()
         m.video.seek(0)
-        sleep(m.config.startupLeaderDelay.toInt())
+        sleep(m.config.looppointleaderdelay.toInt())
         m.transportState = "starting"
       else if m.config.syncMode = "follower" then
         m.video.pause()
