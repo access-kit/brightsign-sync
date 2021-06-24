@@ -4,7 +4,7 @@ function createClock(_syncURL as String, _password as String) as Object
   timer = createObject("roAssociativeArray")
 
   ' Give it timer objects
-  timer.systemClock = createObject("roSystemTime")
+  timer.systemClock = createObject("roSystemTime") ' NB: System clock's epoch timestamp is only accurate to the nearest second; use getMillisecond to findout ms at that point, though rounding issue is possible
   timer.startupTime = timer.systemClock.getLocalDateTime()
   timer.startupTime.subtractMilliseconds(timer.startupTime.getMillisecond())
   timer.elapsedTime = createObject("roTimeSpan")
@@ -15,11 +15,13 @@ function createClock(_syncURL as String, _password as String) as Object
   timer.markStart = markStart
   timer.markElapsed = markElapsed
   timer.reqTimer = createObject("roTimeSpan")
+  timer.syncTimer = createObject("roTimeSpan") ' use to measure elapsed time since last syncprocess 
 
   ' Give it timing functions
   timer.getEpoch = getEpoch
   timer.getEpochAsMSString = getEpochAsMSString
   timer.getTimeDiff = getTimeDiff
+  timer.checkRollover = checkRollover
 
   ' Give it a sync destination and an initial offset
   timer.request = createObject("roUrlTransfer")
@@ -42,8 +44,11 @@ function createClock(_syncURL as String, _password as String) as Object
   ' Run an initial sync and get the clock into the same range
   ' Then calculate the new difference
   timer.blockingNTPSync()
+  timer.originalOffset = timer.serverTimeOffset
+  timer.lastMonotonicMSStamp = timer.elapsedTime.totalMilliseconds()
   timer.startupTime.addMilliseconds(timer.serverTimeOffset)
   timer.blockingNTPSync()
+  timer.syncTimer.mark()
 
   return timer
 end function
@@ -58,8 +63,35 @@ end function
 
 ' Get epoch as table with separate seconds and ms
 function getEpoch() as Object
+  ' considering taking into account ms since epoch as well?
   epoch = {seconds:m.startupTime.toSecondsSinceEpoch()+m.elapsedTime.totalSeconds(), milliseconds:(m.elapsedTime.totalMilliseconds() - (m.elapsedTime.totalSeconds()*1000))}
+  ' Protect against negative (and thus invalid) millisecond values
+  if epoch.milliseconds < 0:
+    print("Caught a bad timestamp when attempting to mark time")
+    print("Creating a new monotonic origin.")
+    m.startupTime = m.systemClock.getLocalDateTime()
+    m.startupTime.subtractMilliseconds(m.startupTime.getMillisecond())
+    m.startupTime.addMilliseconds(m.originalOffset)
+    m.elapsedTime.mark()
+    epoch = {seconds:m.startupTime.toSecondsSinceEpoch()+m.elapsedTime.totalSeconds(), milliseconds:(m.elapsedTime.totalMilliseconds() - (m.elapsedTime.totalSeconds()*1000))}
+    m.state = "starting"
+  end if
   return epoch
+end function
+
+function checkRollover()
+  stamp = m.elapsedTime.totalMilliseconds()
+  if stamp < m.lastMonotonicMSStamp then
+    print("Detected timestamp rollover, should be 24days sinced program started.")
+    print "Rollover stamp:", stamp
+    m.startupTime = m.systemClock.getLocalDateTime()
+    m.startupTime.subtractMilliseconds(m.startupTime.getMillisecond())
+    m.startupTime.addMilliseconds(m.originalOffset)
+    m.elapsedTime.mark()
+    print("Resynchronizing...")
+    m.state = "starting"
+  end if
+  m.lastMonotonicMSStamp = m.elapsedTime.totalMilliseconds()
 end function
 
 ' Get epoch as a ms string
@@ -94,10 +126,12 @@ end function
 
 function clockMachine()
   if m.state = "idle" then 
+    m.checkRollover()
   else if m.state = "starting" then
     ' Create an empty array to store the offsets in
     m.offsets = createObject("roArray",0,true)
     m.state = "requesting an offset"
+    m.syncTimer.mark()
   else if m.state = "requesting an offset" then
     m.request.setUrl(m.apiEndpoint+"?reqSentAt="+m.getEpochAsMSString())
     m.request.asyncGetToString()
@@ -190,6 +224,9 @@ function clockMachine()
     m.serverTimeOffset = avgNoOutliers
     m.state = "finished"
   else if m.state = "finished" then
+    if m.syncTimer.totalMilliseconds() > 30000 then
+      m.state = "idle"
+    end if
   end if
 end function
 
