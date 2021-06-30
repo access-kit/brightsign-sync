@@ -39,11 +39,6 @@ Function oscParseMessage(bytes)
       byte = bytes.next()
       data.push(byte)
     end while
-    print("datatypes")
-    print(datatypes)
-    print("data")
-    print(data)
-
 
     parsedData = createObject("roArray", 0, True)
     parsedDatatypes = createobject("roArray", 0, True)
@@ -69,8 +64,7 @@ Function oscParseMessage(bytes)
           byteCount = byteCount +1
         end while
 
-      else if datatype = "i"
-        ' ToDo: implement 32-bit int parser
+      else if datatype = "i" ' handle integers
         intData = createObject("roByteArray")
         for i=0 to 3 STEP 1
           byte = data.next()
@@ -79,7 +73,7 @@ Function oscParseMessage(bytes)
         end for 
         parsedData.push(decodeIntTwosComp(intData))
 
-      else if datatype = "f"
+      else if datatype = "f" ' handle floats
         floatData = createObject("roByteArray")
         for i=0 to 3 STEP 1
           byte = data.next()
