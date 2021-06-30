@@ -382,6 +382,13 @@ function handleUDP()
           m.video.pause()
           seekPositionS = payload.data
           m.video.seek(int(seekPositionS.toFloat()*1000))
+        else if payload.address = "/seekS" then
+          m.video.pause()
+          seekPositionS = payload.data
+          m.video.seek(int(seekPositionS*1000))
+        else if payload.address = "/floatTest" then
+          print("received a float...")
+          print(payload.data)
         else 
         print "Unhandled OSC address:", payload.address
         end if

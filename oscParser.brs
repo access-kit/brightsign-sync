@@ -66,14 +66,13 @@ Function oscParseMessage(bytes)
         parsedData.push(intData)
 
       else if datatype = "f"
-        ' ToDo: implement 32-bit IEEE 754 parser
         floatData = createObject("roByteArray")
         for i=0 to 3 STEP 1
           byte = data.next()
           byteCount = byteCount + 1
           floatData.push(byte)
         end for 
-        parsedData.push(floatData)
+        parsedData.push(decodeFloatIEEE754(floatData))
       end if
       
     end for
@@ -91,3 +90,27 @@ Function oscParseMessage(bytes)
     return -1
   end if
 end Function
+
+function decodeFloatIEEE754(bytes)
+  signBit = int((bytes.getEntry(0) and 128) / 128)
+
+  exponent = int(127 and bytes.getEntry(0))*2
+  exponent = exponent+ int((bytes.getEntry(1) and 128) / 128)
+
+  bits = createObject("roArray",24,False)
+  for i=1 to 7 step 1
+    bits[i] = int((bytes.getEntry(1) and 2^(7-i)) / 2^(7-i))
+  end for
+  for i=8 to 15 step 1
+    bits[i] = int((bytes.getEntry(2) and 2^(15-i)) / 2^(15-i))
+  end for
+  for i=16 to 23 step 1
+    bits[i] = int((bytes.getEntry(3) and 2^(23-i)) / 2^(23-i))
+  end for
+  mantissa = 0
+  for i=1 to 23 step 1
+    mantissa = mantissa + bits[i]*2^(i*(-1))
+  end for
+  val = (-1)^(signBit) * 2^(exponent-127) * (1+mantissa)
+  return val
+end function
