@@ -1,5 +1,6 @@
 LIBRARY "time.brs"
 LIBRARY "oscBuilder.brs"
+LIBRARY "oscParser.brs"
 
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
@@ -261,6 +262,11 @@ function handleUDP()
       m.video.pause()
       seekPositionMS = msg.getString().tokenize(" ")[1]
       m.video.seek(seekPositionMS.toInt())
+    else if msg.getString().tokenize(" ")[0]="seekSec" then 
+      m.video.pause()
+      seekPositionS = msg.getString().tokenize(" ")[1]
+      m.video.seek(int(seekPositionS.toFloat()*1000))
+      print("just sought.")
     else if msg="ff" then
       m.video.setPlaybackSpeed(2)
     else if msg="fff" then
@@ -368,6 +374,21 @@ function handleUDP()
       STOP
     else if msg="exit" then
       END
+    else
+      bytes = msg.getByteArray()
+      if chr(bytes.getEntry(0)) = "/" then ' check to see if first sign is slash, if so, assume osc
+        payload = oscParseMessage(bytes)
+        if payload.address = "/seekSec" then
+          m.video.pause()
+          seekPositionS = payload.data
+          m.video.seek(int(seekPositionS.toFloat()*1000))
+        else 
+        print "Unhandled OSC address:", payload.address
+        end if
+      else 
+        print "unhandled message:", msg
+      end if
+
     end if
 
   end if
