@@ -12,23 +12,37 @@ Function oscParseMessage(bytes)
       byte = bytes.next()
     end while
 
+    typeByteCount = 1
     dataTypes = createObject("roByteArray")
     byte = bytes.next()
     while not byte = 0 ' step when you find a 0-padding bytes
       dataTypes.push(byte)
       byte = bytes.next()
+      typeByteCount = typeByteCount + 1
     end while
-
-    while byte = 0 ' skip over 0-padding bytes
+    if (typeByteCount mod 4) = 0 then
+      bytes.next()
+      bytes.next()
+      bytes.next()
       byte = bytes.next()
+      typeByteCount = typeByteCount+4
+    end if
+
+    while not (typeByteCount MOD 4 = 0)' go to end of chunk of 4
+      byte = bytes.next()
+      typeByteCount = typeByteCount + 1
     end while
-    
+     
     data = createObject("roByteArray")
-    data.push(byte)
+    data.push(byte)    
     while bytes.isNext():
       byte = bytes.next()
       data.push(byte)
     end while
+    print("datatypes")
+    print(datatypes)
+    print("data")
+    print(data)
 
 
     parsedData = createObject("roArray", 0, True)
@@ -63,7 +77,7 @@ Function oscParseMessage(bytes)
           byteCount = byteCount + 1
           intData.push(byte)
         end for 
-        parsedData.push(intData)
+        parsedData.push(decodeIntTwosComp(intData))
 
       else if datatype = "f"
         floatData = createObject("roByteArray")
@@ -113,4 +127,20 @@ function decodeFloatIEEE754(bytes)
   end for
   val = (-1)^(signBit) * 2^(exponent-127) * (1+mantissa)
   return val
+end function
+
+function decodeIntTwosComp(bytes)
+  signBit = int((bytes.getEntry(0) and 128) / 128)
+  bits = createObject("roArray",31,False)
+  val = 0
+  for i=0 to 30 step 1
+    byteIndex = 3-int(i/8)
+    byteToUse = bytes.getEntry(byteIndex)
+    bits[i] = int((byteToUse and 2^(i-(3-byteIndex)*8)) / 2^(i-(3-byteIndex)*8))
+    bits[i] = signBit * (1-bits[i]) + (1-signBit) * bits[i]
+    val = val + bits[i]*2^i
+  end for
+  val = (val +1*(signBit))* (-1)^(signBit)
+  return val
+
 end function

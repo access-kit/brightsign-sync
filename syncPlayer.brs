@@ -389,6 +389,9 @@ function handleUDP()
         else if payload.address = "/floatTest" then
           print("received a float...")
           print(payload.data)
+        else if payload.address = "/intTest" then
+          print("received a int...")
+          print(payload.data)
         else 
         print "Unhandled OSC address:", payload.address
         end if
