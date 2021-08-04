@@ -561,6 +561,10 @@ function updateScripts()
   request.setUrl(oscslug)
   request.getToFile("oscBuilder.brs")
   resPort.waitMessage(2000)
+  oscslug = m.config.firmwareURL+"/oscParser.brs"
+  request.setUrl(oscslug)
+  request.getToFile("oscParser.brs")
+  resPort.waitMessage(2000)
   print "Attempt to update scripts has completed."
   RestartScript()
 end function
