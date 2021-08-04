@@ -602,12 +602,14 @@ function bootSetup()
 
   ' Factory reset
   if initStatus.justfactoryreset = "true" then
+    ' Just factory reset, don't do it again, make sure we mark it in the registry.
     initStatus.justfactoryreset  = "false"
     WriteAsciiFile("init.json",FormatJSON(initStatus))
     syncSignReg.write("resetComplete","true")
     syncSignReg.flush()
   else 
     if syncSignReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
+      ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
       if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
       meta99 = CreateObject("roAssociativeArray")
       meta99.AddReplace("CharWidth", 30)
@@ -691,7 +693,7 @@ function bootSetup()
     shouldReboot = true
   end if
 
-  ' DHC SSH and DWS
+  ' DHCP SSH and DWS
   if syncSignReg.read("remoteAccessConfigured") <> "true" then
     if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
     meta99 = CreateObject("roAssociativeArray")
