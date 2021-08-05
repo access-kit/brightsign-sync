@@ -17,6 +17,7 @@ function createSyncPlayer(_config as Object) as Object
   player.downloadResponsePort = createObject("roMessagePort")
   player.downloadRequest.setPort(player.downloadResponsePort)
 
+  ' Ensure that necessary config values are present
   if player.config.volume = invalid then
     player.config.volume = "15"
     WriteAsciiFile("config.json", FormatJSON(player.config))
