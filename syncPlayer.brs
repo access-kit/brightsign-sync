@@ -7,25 +7,42 @@ function createSyncPlayer(_config as Object) as Object
   player.config = _config
   player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.config.playerID
   player.nc = createObject("roNetworkConfiguration", 0)
+  
+  ' Set up the http request and response handlers
+  player.apiRequest = createObject("roUrlTransfer")
+  player.apiResponsePort = createObject("roMessagePort")
+  player.apiRequest.setPort(player.apiResponsePort )
+
+  player.downloadRequest = createObject("roUrlTransfer")
+  player.downloadResponsePort = createObject("roMessagePort")
+  player.downloadRequest.setPort(player.downloadResponsePort)
 
   if player.config.volume = invalid then
     player.config.volume = "15"
     WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/volume")
+    player.apiRequest.asyncPutFromString("password="+player.config.password+"&volume="+player.config.volume)
   end if
 
   if player.config.startupleaderdelay = invalid then
     player.config.startupleaderdelay = "45000"
     WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/startupleaderdelay")
+    player.apiRequest.asyncPutFromString("password="+player.config.password+"&startupleaderdelay="+player.config.startupleaderdelay)
   end if 
 
   if player.config.looppointleaderdelay = invalid then
     player.config.looppointleaderdelay = "100"
     WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/looppointleaderdelay")
+    player.apiRequest.asyncPutFromString("password="+player.config.password+"&looppointleaderdelay="+player.config.looppointleaderdelay)
   end if 
 
   if player.config.commandPort = invalid then
     player.config.commandPort = "9500"
     WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/commandPort")
+    player.apiRequest.asyncPutFromString("password="+player.config.password+"&commandPort="+player.config.commandPort)
   end if 
   
   
@@ -40,14 +57,6 @@ function createSyncPlayer(_config as Object) as Object
     player.transportState = "idle"
   end if
 
-  ' Set up the http request and response handlers
-  player.apiRequest= createObject("roUrlTransfer")
-  player.apiResponsePort = createObject("roMessagePort")
-  player.apiRequest.setPort(player.apiResponsePort )
-
-  player.downloadRequest = createObject("roUrlTransfer")
-  player.downloadResponsePort = createObject("roMessagePort")
-  player.downloadRequest.setPort(player.downloadResponsePort)
 
   ' Give the player methods
   player.run = runMachines
@@ -412,6 +421,8 @@ function updateConfig(key, value)
     print key, m.config[key]
   end for
   WriteAsciiFile("config.json", json)
+  m.apiRequest.setUrl(m.apiEndpoint+"/"+key)
+  m.apiRequest.asyncPutFromString("password="+m.config.password+"&"+key+"="+value)
   if key = "videopath" then
     ' handler for specific key changes
   end if
@@ -424,6 +435,8 @@ function changeVideopath(newpath)
   print "Saving new configuration..."
   print json
   WriteAsciiFile("config.json", json)
+  m.apiRequest.setUrl(m.apiEndpoint+"/videopath")
+  m.apiRequest.asyncPutFromString("password="+m.config.password+"&videopath="+newpath)
 end function
 
 function dlContentToFile(url, filepath)
