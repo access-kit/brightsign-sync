@@ -1,4 +1,5 @@
 LIBRARY "syncPlayer.brs"
+LIBRARY "boot.brs"
 
 
 

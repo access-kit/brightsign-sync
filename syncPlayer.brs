@@ -20,6 +20,11 @@ function createSyncPlayer(_config as Object) as Object
     player.config.looppointleaderdelay = "100"
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
+
+  if player.config.commandPort = invalid then
+    player.config.commandPort = "9500"
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+  end if 
   
   
   player.nc = createObject("roNetworkConfiguration", 0)
@@ -546,6 +551,11 @@ function updateScripts()
   request.setUrl(autorunslug)
   request.asyncGetToFile("autorun.brs")
   resPort.waitMessage(2000)
+  print "Getting boot..."
+  bootslug = m.config.firmwareURL+"/boot.brs"
+  request.setUrl(bootslug)
+  request.asyncGetToFile("boot.brs")
+  resPort.waitMessage(2000)
   print "Getting sync player library..."
   syncPlayerslug = m.config.firmwareURL+"/syncPlayer.brs"
   request.setUrl(syncplayerslug)
@@ -584,152 +594,4 @@ function updateContent()
   request.setUrl(m.config.videoURL)
   request.getToFile(m.config.videopath)
   RestartScript()
-end function
-
-function bootSetup()
-  initStatus = ParseJSON(ReadAsciiFile("init.json"))
-  syncSignReg = createObject("roRegistrySection", "syncSign")
-  n = CreateObject("roNetworkConfiguration", 0)
-  registry = CreateObject("roRegistry")
-  shouldReboot = False
-  
-  ' Exit to Shell
-  if initStatus.boottoshell = "true" then
-    initstatus.boottoshell = "false"
-    WriteAsciiFile("init.json",FormatJSON(initStatus))
-    END
-  end if
-
-  ' Factory reset
-  if initStatus.justfactoryreset = "true" then
-    ' Just factory reset, don't do it again, make sure we mark it in the registry.
-    initStatus.justfactoryreset  = "false"
-    WriteAsciiFile("init.json",FormatJSON(initStatus))
-    syncSignReg.write("resetComplete","true")
-    syncSignReg.flush()
-  else 
-    if syncSignReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
-      ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
-      if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-      meta99 = CreateObject("roAssociativeArray")
-      meta99.AddReplace("CharWidth", 30)
-      meta99.AddReplace("CharHeight", 50)
-      meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-      meta99.AddReplace("TextColor", &Hffff00) ' Yellow
-      tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
-
-      tf99.SendBlock("Deleting Recovery settings.")
-      sleep(2000)
-      tf99.Cls()
-
-      mfgn=createobject("roMfgtest")
-      mfgn.FactoryReset()
-      registry.Flush()
-      initStatus.justfactoryreset = "true"
-      initStatus.shouldfactoryreset = "false"
-      WriteAsciiFile("init.json", FormatJSON(initStatus))
-      
-
-      tf99.SendBlock("Factory reset complete.  Restarting and then will configure network")
-      sleep(4000)
-      RebootSystem()
-    end if
-  end if
-
-  testReq = createObject("rourltransfer")
-  testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
-  testReqPort = createObject("roMessagePort")
-  testReq.setPort(testReqPort)
-  testReq.asyncGetToString()
-  msg = testReqPort.waitmessage(3000)
-  if type(msg) <> "roUrlEvent" then 
-    print("Internet check failed because request timed out.")
-    if initstatus.justnetworkrebooted = "true"
-      print("Already rebooted once, so continuing on without internet.")
-    else
-      initStatus.justnetworkrebooted = "true"
-      WriteAsciiFile("init.json",FormatJSON(initStatus))
-      print("Rebooting once to attempt to reconnect because no response received.")
-      sleep(10000)
-      RebootSystem()
-    end if
-  else 
-    if msg.getResponseCode() <> 200 then
-      print("Internet check failed.")
-      if initstatus.justnetworkrebooted = "true"
-        print("Already rebooted once, so continuing on without internet.")
-      else
-        initStatus.justnetworkrebooted = "true"
-        WriteAsciiFile("init.json",FormatJSON(initStatus))
-        print("Rebooting once to attempt to reconnect because network check returned false code")
-        sleep(10000)
-        RebootSystem()
-      end if
-    else 
-      print("internet check is successful")
-    end if
-  end if
-  initstatus.justnetworkrebooted = "false"
-  WriteAsciiFile("init.json",FormatJSON(initStatus))
-
-  ' if n.testinternetconnectivity().ok = false then
-  '   print("Internet check failed.  Attempting to set to null ip and then back to dhcp.")
-  '   n.setIP4Address("240.0.0.0") ' Null IP Address
-  '   n.apply()
-  '   registry.flush()
-  '   sleep(5000)
-  '   n.setDHCP()
-  '   n.apply()
-  '   registry.flush()
-  '   sleep(5000)
-  '   print n.testinternetconnectivity()
-  ' end if
-
-  if not n.getCurrentConfig().dhcp then
-    n.setDHCP()
-    n.apply()
-    registry.flush()
-    print("Should reboot because dhcp was not configured")
-    shouldReboot = true
-  end if
-
-  ' DHCP SSH and DWS
-  if syncSignReg.read("remoteAccessConfigured") <> "true" then
-    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-    meta99 = CreateObject("roAssociativeArray")
-    meta99.AddReplace("CharWidth", 30)
-    meta99.AddReplace("CharHeight", 50)
-    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
-    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
-
-    tf99.SendBlock("Setting up registries.")
-    sleep(2000)
-    tf99.Cls()
-
-    reg = CreateObject("roRegistrySection", "networking")
-    reg.write("ssh","22")
-
-    n.SetLoginPassword("syncSign")
-    n.SetupDWS({open:"syncSign"})
-
-    n.Apply()
-    reg.flush()
-
-
-    ' regSec = CreateObject("roRegistrySection", "networking")
-    ' regSec.Write("ptp_domain", "0")
-    ' regSec.Flush()
-
-    tf99.SendBlock("Registries written and flushed.  Restarting and loading main file.")
-    syncSignReg.write("remoteAccessConfigured", "true")
-    syncSignReg.flush()
-    sleep(4000)
-    shouldReboot = true
-  end if 
-
-  if shouldReboot then
-    RebootSystem()
-  end if
-
 end function

@@ -1,0 +1,234 @@
+function bootSetup()
+  initStatus = ParseJSON(ReadAsciiFile("init.json"))
+  syncSignReg = createObject("roRegistrySection", "syncSign")
+  n = CreateObject("roNetworkConfiguration", 0)
+  registry = CreateObject("roRegistry")
+  shouldReboot = False
+  
+  ' Exit to Shell
+  if initStatus.boottoshell = "true" then
+    initstatus.boottoshell = "false"
+    WriteAsciiFile("init.json",FormatJSON(initStatus))
+    END
+  end if
+
+  ' Factory reset
+  if initStatus.justfactoryreset = "true" then
+    ' Just factory reset, don't do it again, make sure we mark it in the registry.
+    initStatus.justfactoryreset  = "false"
+    WriteAsciiFile("init.json",FormatJSON(initStatus))
+    syncSignReg.write("resetComplete","true")
+    syncSignReg.flush()
+  else 
+    if syncSignReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
+      ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
+      if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+      meta99 = CreateObject("roAssociativeArray")
+      meta99.AddReplace("CharWidth", 30)
+      meta99.AddReplace("CharHeight", 50)
+      meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+      meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+      tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
+
+      tf99.SendBlock("Deleting Recovery settings.")
+      sleep(2000)
+      tf99.Cls()
+
+      mfgn=createobject("roMfgtest")
+      mfgn.FactoryReset()
+      registry.Flush()
+      initStatus.justfactoryreset = "true"
+      initStatus.shouldfactoryreset = "false"
+      WriteAsciiFile("init.json", FormatJSON(initStatus))
+      
+
+      tf99.SendBlock("Factory reset complete.  Restarting and then will configure network")
+      sleep(4000)
+      RebootSystem()
+    end if
+  end if
+
+
+  testReq = createObject("rourltransfer")
+  testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
+  testReqPort = createObject("roMessagePort")
+  testReq.setPort(testReqPort)
+  testReq.asyncGetToString()
+  msg = testReqPort.waitmessage(3000)
+  if type(msg) <> "roUrlEvent" then 
+    print("Internet check failed because request timed out.")
+    if initstatus.justnetworkrebooted = "true"
+      print("Already rebooted once, so continuing on without internet.")
+    else
+      initStatus.justnetworkrebooted = "true"
+      WriteAsciiFile("init.json",FormatJSON(initStatus))
+      print("Rebooting once to attempt to reconnect because no response received.")
+      sleep(10000)
+      RebootSystem()
+    end if
+  else 
+    if msg.getResponseCode() <> 200 then
+      print("Internet check failed.")
+      if initstatus.justnetworkrebooted = "true"
+        print("Already rebooted once, so continuing on without internet.")
+      else
+        initStatus.justnetworkrebooted = "true"
+        WriteAsciiFile("init.json",FormatJSON(initStatus))
+        print("Rebooting once to attempt to reconnect because network check returned false code")
+        sleep(10000)
+        RebootSystem()
+      end if
+    else 
+      print("internet check is successful")
+    end if
+  end if
+  initstatus.justnetworkrebooted = "false"
+  WriteAsciiFile("init.json",FormatJSON(initStatus))
+
+  ' if n.testinternetconnectivity().ok = false then
+  '   print("Internet check failed.  Attempting to set to null ip and then back to dhcp.")
+  '   n.setIP4Address("240.0.0.0") ' Null IP Address
+  '   n.apply()
+  '   registry.flush()
+  '   sleep(5000)
+  '   n.setDHCP()
+  '   n.apply()
+  '   registry.flush()
+  '   sleep(5000)
+  '   print n.testinternetconnectivity()
+  ' end if
+
+  if not n.getCurrentConfig().dhcp then
+    n.setDHCP()
+    n.apply()
+    registry.flush()
+    print("Should reboot because dhcp was not configured")
+    shouldReboot = true
+  end if
+
+  ' Access-Kit provisioning 
+  deviceInfo = createObject("roDeviceInfo")
+  uniqueID = deviceInfo.getDeviceUniqueID()
+  currentIP = n.getCurrentConfig().ip4_address
+  currentHostname = n.getHostName()
+  print "BrightSign Serial Number:", uniqueID
+  print "BrightSign IP Address:", currentIP
+  print "BrightSign Hostname:", currentHostname
+
+  if syncSignReg.exists("playerID") then
+    ' check for new config data
+    playerID = syncSignReg.read("playerID")
+    configRequest = createObject("rourltransfer")
+    configRequest.setUrl(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/"+playerID"?includeWork=false")
+    configResponsePort = createObject("roMessagePort")
+    configRequest.setPort(configResponsePort)
+    configRequest.asyncGetToString()
+    msg = configResponsePort.waitMessage(3000)
+    if type(msg) <> "roUrlEvent" then 
+      ' Internet could not connect for some reason
+    else if msg.responseCode = 400 or msg.responseCode = 404 then
+      ' Handle resource not found
+    else 
+      data = ParseJSON(msg.getString())
+      if uniqueID <> data.serialnumber then
+        ' TODO: Handle conflict between player id and putativeID!
+      end if
+      if playerID <> data.id then
+        ' TODO: Handle conflict between player id and putativeID!
+      end if
+      data.ipAddress = currentIP
+      data.playerID = data.id
+      ' TODO: handle any other conflicts for which the authoritative source of truth is the player
+      WriteAsciiFile("config.json",data)
+      ' Updates remote with new IP
+      configRequest.asyncPutFromString("password="+data.password+"&ipAddress="+data.currentIP)
+    end if
+  else
+    ' register with access-kit
+    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+    meta99 = CreateObject("roAssociativeArray")
+    meta99.AddReplace("CharWidth", 30)
+    meta99.AddReplace("CharHeight", 50)
+    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
+
+    tf99.SendBlock("Attempting to connect to Access-Kit for the first time...")
+    sleep(2000)
+    tf99.Cls()
+
+    syncSignReg.write("serialnumber",uniqueID)
+    syncSignReg.flush()
+    registry.flush()
+    requestPlayerID = createObject("rourltransfer")
+    requestPlayerID.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/serialnumber")
+    password = ParseJSON(ReadAsciiFile("config.json")).password
+    requestPlayerIDPort = createObject("roMessagePort")
+    requestPlayerID.setPort(requestPlayerIDPort)
+    requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP)
+    msg = requestPlayerID.waitmessage(5000)
+    if type(msg) <> ("roUrlEvent") then
+      tf99.Cls()
+      tf99.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+      while true
+        sleep(1000)
+      end while
+    else 
+      responseCode = msg.getResponseCode()
+      if responseCode = 200 then
+        response = = msg.getString()
+        data = ParseJSON(response)
+        playerID = data.id
+        WriteAsciiFile("config.json",FormatJSON(data))
+        syncSignReg.write("playerID",playerID)
+        syncSignReg.flush()
+        registry.flush()
+      else 
+        'TODO: handle 403
+      end if
+
+
+    end if
+
+  end if
+
+  ' DHCP SSH and DWS
+  if syncSignReg.read("remoteAccessConfigured") <> "true" then
+    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+    meta99 = CreateObject("roAssociativeArray")
+    meta99.AddReplace("CharWidth", 30)
+    meta99.AddReplace("CharHeight", 50)
+    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
+    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
+
+    tf99.SendBlock("Setting up registries.")
+    sleep(2000)
+    tf99.Cls()
+
+    reg = CreateObject("roRegistrySection", "networking")
+    reg.write("ssh","22")
+
+    n.SetLoginPassword("syncSign")
+    n.SetupDWS({open:"syncSign"})
+
+    n.Apply()
+    reg.flush()
+
+
+    ' regSec = CreateObject("roRegistrySection", "networking")
+    ' regSec.Write("ptp_domain", "0")
+    ' regSec.Flush()
+
+    tf99.SendBlock("Registries written and flushed.  Restarting and loading main file.")
+    syncSignReg.write("remoteAccessConfigured", "true")
+    syncSignReg.flush()
+    sleep(4000)
+    shouldReboot = true
+  end if 
+
+  if shouldReboot then
+    RebootSystem()
+  end if
+
+end function
