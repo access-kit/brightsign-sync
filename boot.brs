@@ -161,6 +161,7 @@ function bootSetup()
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
       WriteAsciiFile("config.json",data)
       ' Updates remote with new IP
+      configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+playerID+"/ipAddress")
       configRequest.asyncPutFromString("password="+data.password+"&ipAddress="+data.currentIP)
     end if
   else

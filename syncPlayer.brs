@@ -154,7 +154,7 @@ function loadVideoFile()
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
     if m.config.updateWeb = "on" then 
-      m.apiRequest.asyncPostFromString(updateDurationData)
+      m.apiRequest.asyncPutFromString(updateDurationData)
     end if 
 
     ' Window setup
@@ -225,9 +225,9 @@ end function
 
 function submitTimestamp() ' as String
   m.apiRequest.setUrl(m.apiEndpoint+"/timestamp")
-  postString = "password="+m.apiRequest.escape(m.config.password)+"&"
-  postString = postString+"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
-  m.apiRequest.asyncPostFromString(postString)
+  putString = "password="+m.apiRequest.escape(m.config.password)+"&"
+  putString = putString +"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
+  m.apiRequest.asyncPutFromString(putString)
   ' response = m.apiResponsePort .waitMessage(1000)
   ' if not response = invalid then
   '   response = response.getString()
