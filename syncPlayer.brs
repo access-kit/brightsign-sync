@@ -5,6 +5,8 @@ LIBRARY "oscParser.brs"
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
   player.config = _config
+  player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.config.playerID
+  player.nc = createObject("roNetworkConfiguration", 0)
 
   if player.config.volume = invalid then
     player.config.volume = "15"
@@ -27,13 +29,6 @@ function createSyncPlayer(_config as Object) as Object
   end if 
   
   
-  player.nc = createObject("roNetworkConfiguration", 0)
-  if player.nc.getHostName() <> player.config.organization+"-brightsign-"+player.config.playerID then
-    player.nc.setHostName(player.config.organization+"-brightsign-"+player.config.playerID)
-    player.nc.apply()
-    print "Rebooting to update hostname."
-    RebootSystem()
-  end if
 
   player.firmwareCMSState = "idle"
   player.contentCMSState = "idle"
@@ -151,7 +146,7 @@ function loadVideoFile()
 
     ' Update the server with the newly determined timestamp
     print "Updating duration on server..."
-    m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/duration")
+    m.apiRequest.setUrl(m.apiEndpoint+"/duration")
     updateDurationData = "password="+m.config.password+"&"
     durationWithDelay = m.duration
     if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
@@ -229,7 +224,7 @@ function markLocalStart()
 end function
 
 function submitTimestamp() ' as String
-  m.apiRequest.setUrl(m.config.syncURL+"/api/work/"+m.config.workID+"/timestamp")
+  m.apiRequest.setUrl(m.apiEndpoint+"/timestamp")
   postString = "password="+m.apiRequest.escape(m.config.password)+"&"
   postString = postString+"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.apiRequest.asyncPostFromString(postString)
@@ -359,7 +354,7 @@ function handleUDP()
     else if msg = "query" then
       print "received query request"
       print m.controllerIP
-      if m.config.oscDebug = "on" AND not m.controllerIP = invalid then
+      if not m.controllerIP = invalid then
         print ("attempting to transmit config data to: "+m.controllerIP)
         for each key in m.config
           oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key].getString())
@@ -480,7 +475,7 @@ function transportMachine()
     m.transportState = "submitting timestamp"
   else if m.transportState = "submitting timestamp" then
     if m.config.syncMode = "follower" then
-      sleep((m.config.workID.toInt() MOD 10)*5)
+      sleep(((m.config.syncGroup.toInt()+1) MOD 10)*5)
     end if
     if m.config.updateWeb = "on" then
       m.submitTimestamp()

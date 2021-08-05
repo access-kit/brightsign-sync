@@ -1,14 +1,18 @@
 {
     "commandPort":"9500",
     "firmwareURL":"http://samwolk.info/sync/brightsign",
-    "workID":"1",
-    "organization":"shed",
-    "oscDebug":"on",
+    "videoURL" : "http://mediaserver.com/video.mp4",
+    "startupleaderdelay":"30000",
+    "looppointleaderdelay": "100",
     "password":"syncSign",
     "playerID":"1",
+    "id":"1",
+    "volume":"15",
     "syncGroup":"1",
+    "workID":"1",
     "syncMode":"solo",
     "syncURL":"http://192.168.0.32:3000",
     "updateWeb":"on",
-    "videopath":"flatwing.mp4"
+    "updateWork":"false",
+    "videopath":"auto"
 }

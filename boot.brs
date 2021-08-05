@@ -4,6 +4,13 @@ function bootSetup()
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
   shouldReboot = False
+
+  textboxConfig = createObject("roAssociativeArray")
+  textboxConfig.AddReplace("CharWidth", 30)
+  textboxConfig.AddReplace("CharHeight", 50)
+  textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
+  textboxConfig.AddReplace("TextColor", &Hffffff) ' White
+  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, textboxConfig)
   
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
@@ -11,6 +18,7 @@ function bootSetup()
     WriteAsciiFile("init.json",FormatJSON(initStatus))
     END
   end if
+
 
   ' Factory reset
   if initStatus.justfactoryreset = "true" then
@@ -23,16 +31,10 @@ function bootSetup()
     if syncSignReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
       ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
       if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-      meta99 = CreateObject("roAssociativeArray")
-      meta99.AddReplace("CharWidth", 30)
-      meta99.AddReplace("CharHeight", 50)
-      meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-      meta99.AddReplace("TextColor", &Hffff00) ' Yellow
-      tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
 
-      tf99.SendBlock("Deleting Recovery settings.")
+      textbox.SendBlock("Deleting Recovery settings.")
       sleep(2000)
-      tf99.Cls()
+      textbox.Cls()
 
       mfgn=createobject("roMfgtest")
       mfgn.FactoryReset()
@@ -42,13 +44,13 @@ function bootSetup()
       WriteAsciiFile("init.json", FormatJSON(initStatus))
       
 
-      tf99.SendBlock("Factory reset complete.  Restarting and then will configure network")
+      textbox.SendBlock("Factory reset complete.  Restarting and then will configure network")
       sleep(4000)
       RebootSystem()
     end if
   end if
 
-
+  ' Internet Connectivity Test
   testReq = createObject("rourltransfer")
   testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
   testReqPort = createObject("roMessagePort")
@@ -98,6 +100,11 @@ function bootSetup()
   '   print n.testinternetconnectivity()
   ' end if
 
+
+
+
+
+  ' DHCP SETUP
   if not n.getCurrentConfig().dhcp then
     n.setDHCP()
     n.apply()
@@ -105,6 +112,11 @@ function bootSetup()
     print("Should reboot because dhcp was not configured")
     shouldReboot = true
   end if
+  
+
+
+
+
 
   ' Access-Kit provisioning 
   deviceInfo = createObject("roDeviceInfo")
@@ -136,8 +148,16 @@ function bootSetup()
       if playerID <> data.id then
         ' TODO: Handle conflict between player id and putativeID!
       end if
+      if n.getHostName() <> "access-kit-mediaplayer-"+data.id then
+        n.setHostName("access-kit-mediaplayer-"+data.id)
+        player.n.apply()
+        print "Hostname updated.  Will reboot."
+        shouldReboot = true
+      end if
       data.ipAddress = currentIP
       data.playerID = data.id
+      print("Acquired config data.")
+      print(data)
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
       WriteAsciiFile("config.json",data)
       ' Updates remote with new IP
@@ -146,16 +166,10 @@ function bootSetup()
   else
     ' register with access-kit
     if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-    meta99 = CreateObject("roAssociativeArray")
-    meta99.AddReplace("CharWidth", 30)
-    meta99.AddReplace("CharHeight", 50)
-    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
-    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
 
-    tf99.SendBlock("Attempting to connect to Access-Kit for the first time...")
+    textbox.SendBlock("Attempting to connect to Access-Kit for the first time...")
     sleep(2000)
-    tf99.Cls()
+    textbox.Cls()
 
     syncSignReg.write("serialnumber",uniqueID)
     syncSignReg.flush()
@@ -168,8 +182,8 @@ function bootSetup()
     requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP)
     msg = requestPlayerID.waitmessage(5000)
     if type(msg) <> ("roUrlEvent") then
-      tf99.Cls()
-      tf99.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+      textbox.Cls()
+      textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
       while true
         sleep(1000)
       end while
@@ -183,28 +197,32 @@ function bootSetup()
         syncSignReg.write("playerID",playerID)
         syncSignReg.flush()
         registry.flush()
+      if n.getHostName() <> "access-kit-mediaplayer-"+playerID then
+        n.setHostName("access-kit-mediaplayer-"+playerID)
+        player.n.apply()
+        print "Hostname updated."
+        shouldReboot = true
+      end if
       else 
         'TODO: handle 403
       end if
-
-
     end if
-
   end if
 
-  ' DHCP SSH and DWS
+
+
+
+
+
+
+
+  ' SSH and DWS
   if syncSignReg.read("remoteAccessConfigured") <> "true" then
     if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-    meta99 = CreateObject("roAssociativeArray")
-    meta99.AddReplace("CharWidth", 30)
-    meta99.AddReplace("CharHeight", 50)
-    meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-    meta99.AddReplace("TextColor", &Hffff00) ' Yellow
-    tf99 = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, meta99)
 
-    tf99.SendBlock("Setting up registries.")
+    textbox.SendBlock("Setting up registries.")
     sleep(2000)
-    tf99.Cls()
+    textbox.Cls()
 
     reg = CreateObject("roRegistrySection", "networking")
     reg.write("ssh","22")
@@ -220,7 +238,7 @@ function bootSetup()
     ' regSec.Write("ptp_domain", "0")
     ' regSec.Flush()
 
-    tf99.SendBlock("Registries written and flushed.  Restarting and loading main file.")
+    textbox.SendBlock("Registries written and flushed.  Restarting and loading main file.")
     syncSignReg.write("remoteAccessConfigured", "true")
     syncSignReg.flush()
     sleep(4000)
