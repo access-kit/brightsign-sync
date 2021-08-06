@@ -1,6 +1,6 @@
 function bootSetup()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
-  syncSignReg = createObject("roRegistrySection", "syncSign")
+  accessKitReg = createObject("roRegistrySection", "accessKit")
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
   shouldReboot = False
@@ -25,10 +25,10 @@ function bootSetup()
     ' Just factory reset, don't do it again, make sure we mark it in the registry.
     initStatus.justfactoryreset  = "false"
     WriteAsciiFile("init.json",FormatJSON(initStatus))
-    syncSignReg.write("resetComplete","true")
-    syncSignReg.flush()
+    accessKitReg.write("resetComplete","true")
+    accessKitReg.flush()
   else 
-    if syncSignReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
+    if accessKitReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
       ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
       if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
 
@@ -126,10 +126,13 @@ function bootSetup()
   print "BrightSign Serial Number:", uniqueID
   print "BrightSign IP Address:", currentIP
   print "BrightSign Hostname:", currentHostname
+  print "Checking Access-Kit provisioning status..."
 
-  if syncSignReg.exists("playerID") then
+  if accessKitReg.exists("playerID") then
+    print "Player already provisioned."
+    print "Checking for new configurtion..."
     ' check for new config data
-    playerID = syncSignReg.read("playerID")
+    playerID = accessKitReg.read("playerID")
     configRequest = createObject("rourltransfer")
     configRequest.setUrl(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/"+playerID"?includeWork=false")
     configResponsePort = createObject("roMessagePort")
@@ -137,9 +140,11 @@ function bootSetup()
     configRequest.asyncGetToString()
     msg = configResponsePort.waitMessage(3000)
     if type(msg) <> "roUrlEvent" then 
+      print "Could not connect to Access Kit service.  Connection timed out (3s)."
       ' Internet could not connect for some reason
-    else if msg.responseCode = 400 or msg.responseCode = 404 then
+    else if not msg.responseCode = 200 then
       ' Handle resource not found
+      print "Could not connect to Access Kit service.  Error code: "+msg.responseCode
     else 
       data = ParseJSON(msg.getString())
       if uniqueID <> data.serialnumber then
@@ -161,6 +166,7 @@ function bootSetup()
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
       WriteAsciiFile("config.json",data)
       ' Updates remote with new IP
+      print("Sending IP address to Access-Kit API...")
       configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+playerID+"/ipAddress")
       configRequest.asyncPutFromString("password="+data.password+"&ipAddress="+data.currentIP)
     end if
@@ -168,16 +174,20 @@ function bootSetup()
     ' register with access-kit
     if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
 
+    print("Attempting to connect to Access-Kit for the first time...")
     textbox.SendBlock("Attempting to connect to Access-Kit for the first time...")
     sleep(2000)
     textbox.Cls()
 
-    syncSignReg.write("serialnumber",uniqueID)
-    syncSignReg.flush()
+    accessKitReg.write("serialnumber",uniqueID)
+    accessKitReg.flush()
     registry.flush()
     requestPlayerID = createObject("rourltransfer")
     requestPlayerID.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/serialnumber")
     password = ParseJSON(ReadAsciiFile("config.json")).password
+    accessKitReg.write("password",password)
+    accessKitReg.flush()
+    registry.flush()
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
     requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP)
@@ -195,8 +205,8 @@ function bootSetup()
         data = ParseJSON(response)
         playerID = data.id
         WriteAsciiFile("config.json",FormatJSON(data))
-        syncSignReg.write("playerID",playerID)
-        syncSignReg.flush()
+        accessKitReg.write("playerID",playerID)
+        accessKitReg.flush()
         registry.flush()
       if n.getHostName() <> "access-kit-mediaplayer-"+playerID then
         n.setHostName("access-kit-mediaplayer-"+playerID)
@@ -218,7 +228,7 @@ function bootSetup()
 
 
   ' SSH and DWS
-  if syncSignReg.read("remoteAccessConfigured") <> "true" then
+  if accessKitReg.read("remoteAccessConfigured") <> "true" then
     if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
 
     textbox.SendBlock("Setting up registries.")
@@ -240,8 +250,8 @@ function bootSetup()
     ' regSec.Flush()
 
     textbox.SendBlock("Registries written and flushed.  Restarting and loading main file.")
-    syncSignReg.write("remoteAccessConfigured", "true")
-    syncSignReg.flush()
+    accessKitReg.write("remoteAccessConfigured", "true")
+    accessKitReg.flush()
     sleep(4000)
     shouldReboot = true
   end if 

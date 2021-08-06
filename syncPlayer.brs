@@ -7,7 +7,9 @@ function createSyncPlayer(_config as Object) as Object
   player.config = _config
   player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.config.playerID
   player.nc = createObject("roNetworkConfiguration", 0)
-  
+  player.accessKitReg = createObject("roRegistrySection","accessKit")
+  player.password = player.accessKitReg.read("password")
+
   ' Set up the http request and response handlers
   player.apiRequest = createObject("roUrlTransfer")
   player.apiResponsePort = createObject("roMessagePort")
@@ -22,28 +24,28 @@ function createSyncPlayer(_config as Object) as Object
     player.config.volume = "15"
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/volume")
-    player.apiRequest.asyncPutFromString("password="+player.config.password+"&volume="+player.config.volume)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&volume="+player.config.volume)
   end if
 
   if player.config.startupleaderdelay = invalid then
     player.config.startupleaderdelay = "45000"
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/startupleaderdelay")
-    player.apiRequest.asyncPutFromString("password="+player.config.password+"&startupleaderdelay="+player.config.startupleaderdelay)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&startupleaderdelay="+player.config.startupleaderdelay)
   end if 
 
   if player.config.looppointleaderdelay = invalid then
     player.config.looppointleaderdelay = "100"
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/looppointleaderdelay")
-    player.apiRequest.asyncPutFromString("password="+player.config.password+"&looppointleaderdelay="+player.config.looppointleaderdelay)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&looppointleaderdelay="+player.config.looppointleaderdelay)
   end if 
 
   if player.config.commandPort = invalid then
     player.config.commandPort = "9500"
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/commandPort")
-    player.apiRequest.asyncPutFromString("password="+player.config.password+"&commandPort="+player.config.commandPort)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&commandPort="+player.config.commandPort)
   end if 
   
   
@@ -86,7 +88,7 @@ function createSyncPlayer(_config as Object) as Object
   player.videoMode.setMode("auto")
 
   ' Create a clock and sync it
-  player.clock = createClock(player.config.syncURL,player.config.password)
+  player.clock = createClock(player.config.syncURL,player.password)
 
 
   ' Video port for events
@@ -157,7 +159,7 @@ function loadVideoFile()
     ' Update the server with the newly determined timestamp
     print "Updating duration on server..."
     m.apiRequest.setUrl(m.apiEndpoint+"/duration")
-    updateDurationData = "password="+m.config.password+"&"
+    updateDurationData = "password="+m.password+"&"
     durationWithDelay = m.duration
     if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
       durationWithDelay = durationWithDelay + m.config.looppointleaderdelay.toInt()
@@ -235,7 +237,7 @@ end function
 
 function submitTimestamp() ' as String
   m.apiRequest.setUrl(m.apiEndpoint+"/timestamp")
-  putString = "password="+m.apiRequest.escape(m.config.password)+"&"
+  putString = "password="+m.apiRequest.escape(m.password)+"&"
   putString = putString +"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
   m.apiRequest.asyncPutFromString(putString)
   ' response = m.apiResponsePort .waitMessage(1000)
@@ -423,7 +425,7 @@ function updateConfig(key, value)
   end for
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/"+key)
-  m.apiRequest.asyncPutFromString("password="+m.config.password+"&"+key+"="+value)
+  m.apiRequest.asyncPutFromString("password="+m.password+"&"+key+"="+value)
   if key = "videopath" then
     ' handler for specific key changes
   end if
@@ -437,7 +439,7 @@ function changeVideopath(newpath)
   print json
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/videopath")
-  m.apiRequest.asyncPutFromString("password="+m.config.password+"&videopath="+newpath)
+  m.apiRequest.asyncPutFromString("password="+m.password+"&videopath="+newpath)
 end function
 
 function dlContentToFile(url, filepath)
