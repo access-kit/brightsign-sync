@@ -1,14 +1,16 @@
 {
     "commandPort":"9500",
-    "firmwareURL":"http://samwolk.info/sync/brightsign",
-    "workID":"1",
-    "organization":"shed",
+    "firmwareURL":"https://github.com/szvsw/brightSignMediaSync/blob/master",
+    "workID":"32",
+    "organization":"greenhouse",
     "oscDebug":"on",
     "password":"syncSign",
     "playerID":"1",
     "syncGroup":"1",
     "syncMode":"solo",
-    "syncURL":"http://192.168.0.32:3000",
-    "updateWeb":"on",
-    "videopath":"flatwing.mp4"
+    "syncURL":"http://captioner.theshed.org",
+    "updateWeb":"off",
+    "videopath":"avsync.mp4",
+    "looppointleaderdelay" :"0",
+    "startupleaderdelay" : "0"
 }
