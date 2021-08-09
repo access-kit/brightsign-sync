@@ -1,11 +1,11 @@
 {
     "commandPort":"9500",
-    "firmwareURL":"https://raw.githubusercontent.com/szvsw/brightSignMediaSync/tree/master",
+    "firmwareURL":"https://github.com/szvsw/brightSignMediaSync/blob/master",
     "workID":"14",
     "organization":"whitney-mb",
     "oscDebug":"on",
     "password":"syncSign",
-    "playerID":"9",
+    "playerID":"11",
     "syncGroup":"1",
     "syncMode":"follower",
     "syncURL":"http://captioner.whitney.org",
