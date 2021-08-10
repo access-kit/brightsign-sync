@@ -1,10 +1,18 @@
 function bootSetup()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
+  ' Exit to Shell
+  if initStatus.boottoshell = "true" then
+    print("Exiting to shell immediately.")
+    initstatus.boottoshell = "false"
+    WriteAsciiFile("init.json",FormatJSON(initStatus))
+    END
+  end if
   accessKitReg = createObject("roRegistrySection", "accessKit")
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
   shouldReboot = False
 
+  if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
   textboxConfig = createObject("roAssociativeArray")
   textboxConfig.AddReplace("CharWidth", 30)
   textboxConfig.AddReplace("CharHeight", 50)
@@ -12,12 +20,6 @@ function bootSetup()
   textboxConfig.AddReplace("TextColor", &Hffffff) ' White
   textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, textboxConfig)
   
-  ' Exit to Shell
-  if initStatus.boottoshell = "true" then
-    initstatus.boottoshell = "false"
-    WriteAsciiFile("init.json",FormatJSON(initStatus))
-    END
-  end if
 
 
   ' Factory reset
@@ -30,7 +32,6 @@ function bootSetup()
   else 
     if accessKitReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
       ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
-      if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
 
       textbox.SendBlock("Deleting Recovery settings.")
       sleep(2000)
@@ -49,6 +50,34 @@ function bootSetup()
       RebootSystem()
     end if
   end if
+
+  ' SSH and DWS
+  if accessKitReg.read("remoteAccessConfigured") <> "true" then
+
+    textbox.SendBlock("Setting up registries.")
+    sleep(2000)
+    textbox.Cls()
+
+    reg = CreateObject("roRegistrySection", "networking")
+    reg.write("ssh","22")
+
+    n.SetLoginPassword("syncSign")
+    n.SetupDWS({open:"syncSign"})
+
+    n.Apply()
+    reg.flush()
+
+
+    ' regSec = CreateObject("roRegistrySection", "networking")
+    ' regSec.Write("ptp_domain", "0")
+    ' regSec.Flush()
+
+    textbox.SendBlock("Registries written and flushed.  Restarting and loading main file.")
+    accessKitReg.write("remoteAccessConfigured", "true")
+    accessKitReg.flush()
+    sleep(4000)
+    shouldReboot = true
+  end if 
 
   ' Internet Connectivity Test
   testReq = createObject("rourltransfer")
@@ -76,6 +105,7 @@ function bootSetup()
       else
         initStatus.justnetworkrebooted = "true"
         WriteAsciiFile("init.json",FormatJSON(initStatus))
+        print(msg.getResponseCode())
         print("Rebooting once to attempt to reconnect because network check returned false code")
         sleep(10000)
         RebootSystem()
@@ -134,7 +164,7 @@ function bootSetup()
     ' check for new config data
     playerID = accessKitReg.read("playerID")
     configRequest = createObject("rourltransfer")
-    configRequest.setUrl(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/"+playerID"?includeWork=false")
+    configRequest.setUrl(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/"+playerID+"?includeWork=false")
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
@@ -142,37 +172,40 @@ function bootSetup()
     if type(msg) <> "roUrlEvent" then 
       print "Could not connect to Access Kit service.  Connection timed out (3s)."
       ' Internet could not connect for some reason
-    else if not msg.responseCode = 200 then
+    else if msg.getResponseCode() <> 200 then
       ' Handle resource not found
-      print "Could not connect to Access Kit service.  Error code: "+msg.responseCode
+      print "Could not connect to Access Kit service.  Error code: "+msg.getResponseCode()
     else 
       data = ParseJSON(msg.getString())
       if uniqueID <> data.serialnumber then
         ' TODO: Handle conflict between player id and putativeID!
+      else
+        print "Serial number matched remote known serial number."
       end if
-      if playerID <> data.id then
+      if playerID <> data.id.toStr() then
         ' TODO: Handle conflict between player id and putativeID!
+      else
+        print "Player ID matched remote known Player ID."
       end if
-      if n.getHostName() <> "access-kit-mediaplayer-"+data.id then
-        n.setHostName("access-kit-mediaplayer-"+data.id)
-        player.n.apply()
+      if n.getHostName() <> "access-kit-mediaplayer-"+data.id.tostr() then
+        n.setHostName("access-kit-mediaplayer-"+data.id.tostr())
+        n.apply()
         print "Hostname updated.  Will reboot."
         shouldReboot = true
       end if
       data.ipAddress = currentIP
-      data.playerID = data.id
+      data.playerID = data.id.toStr()
       print("Acquired config data.")
       print(data)
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
-      WriteAsciiFile("config.json",data)
+      WriteAsciiFile("config.json",formatjson(data))
       ' Updates remote with new IP
       print("Sending IP address to Access-Kit API...")
       configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+playerID+"/ipAddress")
-      configRequest.asyncPutFromString("password="+data.password+"&ipAddress="+data.currentIP)
+      configRequest.asyncPutFromString("password="+data.password+"&ipAddress="+data.ipAddress)
     end if
   else
     ' register with access-kit
-    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
 
     print("Attempting to connect to Access-Kit for the first time...")
     textbox.SendBlock("Attempting to connect to Access-Kit for the first time...")
@@ -184,6 +217,10 @@ function bootSetup()
     registry.flush()
     requestPlayerID = createObject("rourltransfer")
     requestPlayerID.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/serialnumber")
+    syncURL = ParseJSON(ReadAsciiFile("config.json")).syncURL
+    accessKitReg.write("syncURL",syncURL)
+    accessKitReg.flush()
+    registry.flush()
     password = ParseJSON(ReadAsciiFile("config.json")).password
     accessKitReg.write("password",password)
     accessKitReg.flush()
@@ -191,7 +228,7 @@ function bootSetup()
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
     requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP)
-    msg = requestPlayerID.waitmessage(5000)
+    msg = requestPlayerIDPort.waitmessage(5000)
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
       textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
@@ -201,19 +238,20 @@ function bootSetup()
     else 
       responseCode = msg.getResponseCode()
       if responseCode = 200 then
-        response = = msg.getString()
+        response = msg.getString()
         data = ParseJSON(response)
-        playerID = data.id
+        playerID = data.id.toStr()
         WriteAsciiFile("config.json",FormatJSON(data))
-        accessKitReg.write("playerID",playerID)
+        print(data)
+        accessKitReg.write("playerID",playerID))
         accessKitReg.flush()
         registry.flush()
-      if n.getHostName() <> "access-kit-mediaplayer-"+playerID then
-        n.setHostName("access-kit-mediaplayer-"+playerID)
-        player.n.apply()
-        print "Hostname updated."
-        shouldReboot = true
-      end if
+        if n.getHostName() <> "access-kit-mediaplayer-"+playerID then
+          n.setHostName("access-kit-mediaplayer-"+playerID)
+          n.apply()
+          print "Hostname updated."
+          shouldReboot = true
+        end if
       else 
         'TODO: handle 403
       end if
@@ -227,34 +265,6 @@ function bootSetup()
 
 
 
-  ' SSH and DWS
-  if accessKitReg.read("remoteAccessConfigured") <> "true" then
-    if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-
-    textbox.SendBlock("Setting up registries.")
-    sleep(2000)
-    textbox.Cls()
-
-    reg = CreateObject("roRegistrySection", "networking")
-    reg.write("ssh","22")
-
-    n.SetLoginPassword("syncSign")
-    n.SetupDWS({open:"syncSign"})
-
-    n.Apply()
-    reg.flush()
-
-
-    ' regSec = CreateObject("roRegistrySection", "networking")
-    ' regSec.Write("ptp_domain", "0")
-    ' regSec.Flush()
-
-    textbox.SendBlock("Registries written and flushed.  Restarting and loading main file.")
-    accessKitReg.write("remoteAccessConfigured", "true")
-    accessKitReg.flush()
-    sleep(4000)
-    shouldReboot = true
-  end if 
 
   if shouldReboot then
     RebootSystem()
