@@ -87,7 +87,7 @@ function createSyncPlayer(_config as Object) as Object
   player.video.setPort(player.videoPort)
   player.video.setViewMode(0) 
   player.video.setVolume(player.config.volume.toInt()) ' see config stuff in master from zachpoff
-  player.audio = createObject("roAudioOutput","hdmi")
+  player.audio = createObject("roAudioOutput","spdif")
   player.video.setCompressedAudioOutputs(player.audio)
   player.video.setAudioMode(0)
 
