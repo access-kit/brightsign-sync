@@ -1,5 +1,7 @@
 {
     "justfactoryreset" : "false",
     "boottoshell" : "false",
-    "shouldfactoryreset" : "false"
+    "shouldfactoryreset" : "false",
+    "justnetworkrebooted" : "false",
+    "testinternet" : "false"
 }

@@ -7,18 +7,14 @@ function bootSetup()
     WriteAsciiFile("init.json",FormatJSON(initStatus))
     END
   end if
+
+
   accessKitReg = createObject("roRegistrySection", "accessKit")
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
   shouldReboot = False
+  textbox = createTextBox()
 
-  if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-  textboxConfig = createObject("roAssociativeArray")
-  textboxConfig.AddReplace("CharWidth", 30)
-  textboxConfig.AddReplace("CharHeight", 50)
-  textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
-  textboxConfig.AddReplace("TextColor", &Hffffff) ' White
-  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, textboxConfig)
   
 
 
@@ -51,6 +47,15 @@ function bootSetup()
     end if
   end if
 
+  ' DHCP SETUP
+  if not n.getCurrentConfig().dhcp then
+    n.setDHCP()
+    n.apply()
+    registry.flush()
+    print("Should reboot because dhcp was not configured")
+    shouldReboot = true
+  end if
+
   ' SSH and DWS
   if accessKitReg.read("remoteAccessConfigured") <> "true" then
 
@@ -80,72 +85,44 @@ function bootSetup()
   end if 
 
   ' Internet Connectivity Test
-  testReq = createObject("rourltransfer")
-  testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
-  testReqPort = createObject("roMessagePort")
-  testReq.setPort(testReqPort)
-  testReq.asyncGetToString()
-  msg = testReqPort.waitmessage(3000)
-  if type(msg) <> "roUrlEvent" then 
-    print("Internet check failed because request timed out.")
-    if initstatus.justnetworkrebooted = "true"
-      print("Already rebooted once, so continuing on without internet.")
-    else
-      initStatus.justnetworkrebooted = "true"
-      WriteAsciiFile("init.json",FormatJSON(initStatus))
-      print("Rebooting once to attempt to reconnect because no response received.")
-      sleep(10000)
-      RebootSystem()
-    end if
-  else 
-    if msg.getResponseCode() <> 200 then
-      print("Internet check failed.")
+  if initstatus.testinternet = "true" then 
+    testReq = createObject("rourltransfer")
+    testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
+    testReqPort = createObject("roMessagePort")
+    testReq.setPort(testReqPort)
+    testReq.asyncGetToString()
+    msg = testReqPort.waitmessage(3000)
+    if type(msg) <> "roUrlEvent" then 
+      print("Internet check failed because request timed out.")
       if initstatus.justnetworkrebooted = "true"
         print("Already rebooted once, so continuing on without internet.")
       else
         initStatus.justnetworkrebooted = "true"
         WriteAsciiFile("init.json",FormatJSON(initStatus))
-        print(msg.getResponseCode())
-        print("Rebooting once to attempt to reconnect because network check returned false code")
+        print("Rebooting once to attempt to reconnect because no response received.")
         sleep(10000)
         RebootSystem()
       end if
     else 
-      print("internet check is successful")
+      if msg.getResponseCode() <> 200 then
+        print("Internet check failed.")
+        if initstatus.justnetworkrebooted = "true"
+          print("Already rebooted once, so continuing on without internet.")
+        else
+          initStatus.justnetworkrebooted = "true"
+          WriteAsciiFile("init.json",FormatJSON(initStatus))
+          print(msg.getResponseCode())
+          print("Rebooting once to attempt to reconnect because network check returned false code")
+          sleep(10000)
+          RebootSystem()
+        end if
+      else 
+        print("internet check is successful")
+      end if
     end if
+    initstatus.justnetworkrebooted = "false"
+    WriteAsciiFile("init.json",FormatJSON(initStatus))
   end if
-  initstatus.justnetworkrebooted = "false"
-  WriteAsciiFile("init.json",FormatJSON(initStatus))
-
-  ' if n.testinternetconnectivity().ok = false then
-  '   print("Internet check failed.  Attempting to set to null ip and then back to dhcp.")
-  '   n.setIP4Address("240.0.0.0") ' Null IP Address
-  '   n.apply()
-  '   registry.flush()
-  '   sleep(5000)
-  '   n.setDHCP()
-  '   n.apply()
-  '   registry.flush()
-  '   sleep(5000)
-  '   print n.testinternetconnectivity()
-  ' end if
-
-
-
-
-
-  ' DHCP SETUP
-  if not n.getCurrentConfig().dhcp then
-    n.setDHCP()
-    n.apply()
-    registry.flush()
-    print("Should reboot because dhcp was not configured")
-    shouldReboot = true
-  end if
-  
-
-
-
 
 
   ' Access-Kit provisioning 
@@ -158,13 +135,15 @@ function bootSetup()
   print "BrightSign Hostname:", currentHostname
   print "Checking Access-Kit provisioning status..."
 
-  if accessKitReg.exists("playerID") then
-    print "Player already provisioned."
-    print "Checking for new configurtion..."
+  if accessKitReg.exists("id") then
+    id = accessKitReg.read("id").toInt()
+    password = accessKitReg.read("password")
+    print "Player already provisioned with id "+id.toStr()+"."
+    previousConfig = ParseJSON(ReadAsciiFile("config.json"))
+    print "Checking for new configuration..."
     ' check for new config data
-    playerID = accessKitReg.read("playerID")
     configRequest = createObject("rourltransfer")
-    configRequest.setUrl(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/"+playerID+"?includeWork=false")
+    configRequest.setUrl(previousConfig.syncURL+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
@@ -182,7 +161,7 @@ function bootSetup()
       else
         print "Serial number matched remote known serial number."
       end if
-      if playerID <> data.id.toStr() then
+      if id <> data.id then
         ' TODO: Handle conflict between player id and putativeID!
       else
         print "Player ID matched remote known Player ID."
@@ -193,16 +172,14 @@ function bootSetup()
         print "Hostname updated.  Will reboot."
         shouldReboot = true
       end if
-      data.ipAddress = currentIP
-      data.playerID = data.id.toStr()
       print("Acquired config data.")
       print(data)
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
       WriteAsciiFile("config.json",formatjson(data))
       ' Updates remote with new IP
       print("Sending IP address to Access-Kit API...")
-      configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+playerID+"/ipAddress")
-      configRequest.asyncPutFromString("password="+data.password+"&ipAddress="+data.ipAddress)
+      configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
+      configRequest.asyncPutFromString("password="+password+"&ipAddress="+data.ipAddress)
     end if
   else
     ' register with access-kit
@@ -212,48 +189,51 @@ function bootSetup()
     sleep(2000)
     textbox.Cls()
 
+    initialConfigData = ParseJSON(ReadAsciiFile("config.json"))
+    password = initialConfigData.password
     accessKitReg.write("serialnumber",uniqueID)
-    accessKitReg.flush()
-    registry.flush()
-    requestPlayerID = createObject("rourltransfer")
-    requestPlayerID.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/mediaplayer/serialnumber")
-    syncURL = ParseJSON(ReadAsciiFile("config.json")).syncURL
-    accessKitReg.write("syncURL",syncURL)
-    accessKitReg.flush()
-    registry.flush()
-    password = ParseJSON(ReadAsciiFile("config.json")).password
     accessKitReg.write("password",password)
     accessKitReg.flush()
     registry.flush()
+
+    requestPlayerID = createObject("rourltransfer")
+    requestPlayerID.setURL(initialConfigData.syncURL+"/api/mediaplayer/serialnumber")
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
-    requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP)
+    requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP+"&syncURL="+initialConfigData.syncURL)
+
     msg = requestPlayerIDPort.waitmessage(5000)
+
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
       textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+      print("failed to connect.")
       while true
         sleep(1000)
+        print("Failed to connect, caught in loop...")
       end while
     else 
       responseCode = msg.getResponseCode()
       if responseCode = 200 then
         response = msg.getString()
         data = ParseJSON(response)
-        playerID = data.id.toStr()
         WriteAsciiFile("config.json",FormatJSON(data))
-        print(data)
-        accessKitReg.write("playerID",playerID))
+        accessKitReg.write("id",data.id.toStr())
         accessKitReg.flush()
         registry.flush()
-        if n.getHostName() <> "access-kit-mediaplayer-"+playerID then
-          n.setHostName("access-kit-mediaplayer-"+playerID)
+        if n.getHostName() <> "access-kit-mediaplayer-"+data.id.toStr() then
+          n.setHostName("access-kit-mediaplayer-"+data.id.toStr())
           n.apply()
           print "Hostname updated."
           shouldReboot = true
         end if
       else 
-        'TODO: handle 403
+        textbox.Cls()
+        textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+        print("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+        while true
+          sleep(1000)
+        end while
       end if
     end if
   end if
@@ -270,4 +250,15 @@ function bootSetup()
     RebootSystem()
   end if
 
+end function
+
+function createTextBox()
+  if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+  textboxConfig = createObject("roAssociativeArray")
+  textboxConfig.AddReplace("CharWidth", 30)
+  textboxConfig.AddReplace("CharHeight", 50)
+  textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
+  textboxConfig.AddReplace("TextColor", &Hffffff) ' White
+  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, textboxConfig)
+  return textbox
 end function

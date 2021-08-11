@@ -4,11 +4,12 @@ LIBRARY "oscParser.brs"
 
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
-  player.config = _config
-  player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.config.playerID
-  player.nc = createObject("roNetworkConfiguration", 0)
   player.accessKitReg = createObject("roRegistrySection","accessKit")
   player.password = player.accessKitReg.read("password")
+  player.id = player.accessKitReg.read("id").toInt()
+  player.config = _config
+  player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.id.toStr()
+  player.nc = createObject("roNetworkConfiguration", 0)
 
   ' Set up the http request and response handlers
   player.apiRequest = createObject("roUrlTransfer")
@@ -21,31 +22,31 @@ function createSyncPlayer(_config as Object) as Object
 
   ' Ensure that necessary config values are present
   if player.config.volume = invalid then
-    player.config.volume = "15"
+    player.config.volume = 15
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/volume")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&volume="+player.config.volume)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&volume="+player.config.volume.toStr())
   end if
 
   if player.config.startupleaderdelay = invalid then
-    player.config.startupleaderdelay = "45000"
+    player.config.startupleaderdelay = 30000
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/startupleaderdelay")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&startupleaderdelay="+player.config.startupleaderdelay)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&startupleaderdelay="+player.config.startupleaderdelay.toStr())
   end if 
 
   if player.config.looppointleaderdelay = invalid then
-    player.config.looppointleaderdelay = "100"
+    player.config.looppointleaderdelay = 100
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/looppointleaderdelay")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&looppointleaderdelay="+player.config.looppointleaderdelay)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&looppointleaderdelay="+player.config.looppointleaderdelay.toStr())
   end if 
 
   if player.config.commandPort = invalid then
-    player.config.commandPort = "9500"
+    player.config.commandPort = 9500
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/commandPort")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&commandPort="+player.config.commandPort)
+    player.apiRequest.asyncPutFromString("password="+player.password+"&commandPort="+player.config.commandPort.toStr())
   end if 
   
   
@@ -53,8 +54,8 @@ function createSyncPlayer(_config as Object) as Object
   player.firmwareCMSState = "idle"
   player.contentCMSState = "idle"
   
-  if player.config.syncMode = "leader" or player.config.syncMode = "solo" then
-    sleep(player.config.startupleaderdelay.toInt())
+  if player.config.syncMode = "leader" then
+    sleep(player.config.startupleaderdelay)
     player.transportState = "starting"
   else
     player.transportState = "idle"
@@ -98,7 +99,7 @@ function createSyncPlayer(_config as Object) as Object
   player.video = createObject("roVideoPlayer")
   player.video.setPort(player.videoPort)
   player.video.setViewMode(0) 
-  player.video.setVolume(player.config.volume.toInt()) ' see config stuff in master from zachpoff
+  player.video.setVolume(player.config.volume) ' see config stuff in master from zachpoff
 
   ' Load the currently selected video and report its duration
   player.loadVideoFile()
@@ -120,8 +121,8 @@ function loadVideoFile()
     m.meta99 = CreateObject("roAssociativeArray")
     m.meta99.AddReplace("CharWidth", 30)
     m.meta99.AddReplace("CharHeight", 50)
-    m.meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-    m.meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+    m.meta99.AddReplace("BackgroundColor", &H000000) ' Black
+    m.meta99.AddReplace("TextColor", &Hffffff) ' White
     m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
     m.tf99.SendBlock("No valid video files found!")
     sleep(5000)
@@ -144,8 +145,8 @@ function loadVideoFile()
         m.meta99 = CreateObject("roAssociativeArray")
         m.meta99.AddReplace("CharWidth", 30)
         m.meta99.AddReplace("CharHeight", 50)
-        m.meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-        m.meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+        m.meta99.AddReplace("BackgroundColor", &H000000) ' Black
+        m.meta99.AddReplace("TextColor", &Hffffff) ' White
         m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
         m.tf99.SendBlock("No valid video files found!")
         sleep(5000)
@@ -162,7 +163,7 @@ function loadVideoFile()
     updateDurationData = "password="+m.password+"&"
     durationWithDelay = m.duration
     if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
-      durationWithDelay = durationWithDelay + m.config.looppointleaderdelay.toInt()
+      durationWithDelay = durationWithDelay + m.config.looppointleaderdelay
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
     if m.config.updateWeb = "on" then 
@@ -177,20 +178,20 @@ function loadVideoFile()
 end function
 
 function setupUDP()
-  print "Setting up udp port", m.config.commandPort.toInt()
+  print "Setting up udp port", m.config.commandPort
   m.udpSocket = createObject("roDatagramSocket")
-  m.udpSocket.bindToLocalPort(m.config.commandPort.toInt())
+  m.udpSocket.bindToLocalPort(m.config.commandPort)
   m.udpPort = createObject("roMessagePort")
   m.udpSocket.setPort(m.udpPort)
   m.udpSocket.joinMulticastGroup("239.192.0.0")
-  m.udpSocket.joinMulticastGroup("239.192.0."+m.config.syncGroup)
-  m.udpSocket.joinMulticastGroup("239.192.4."+m.config.playerID)
+  m.udpSocket.joinMulticastGroup("239.192.0."+m.config.syncGroup.toStr())
+  m.udpSocket.joinMulticastGroup("239.192.4."+m.id.toStr())
   if m.config.syncMode = "leader" then
     m.udpSocket.joinMulticastGroup("239.192.1.0")
-    m.udpSocket.joinMulticastGroup("239.192.1."+m.config.syncGroup)
+    m.udpSocket.joinMulticastGroup("239.192.1."+m.config.syncGroup.toStr())
   else if m.config.syncMode = "follower" then
     m.udpSocket.joinMulticastGroup("239.192.2.0")
-    m.udpSocket.joinMulticastGroup("239.192.2."+m.config.syncGroup)
+    m.udpSocket.joinMulticastGroup("239.192.2."+m.config.syncGroup.toStr())
   end if
 end function
 
@@ -356,11 +357,12 @@ function handleUDP()
       WriteAsciiFile("window.json", json)
     else if msg.getString().tokenize(" ")[0]="config" then 
       m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
-      m.video.setVolume(m.config.volume.toInt())
+      m.video.setVolume(m.config.volume)
     else if msg = "printConfig" then
       for each key in m.config
         print key, m.config[key]
       end for
+      print "Player ID", m.id
     else if msg = "changeHumanController" then
       m.controllerIP = msg.getSourceHost()
     else if msg = "query" then
@@ -369,12 +371,18 @@ function handleUDP()
       if not m.controllerIP = invalid then
         print ("attempting to transmit config data to: "+m.controllerIP)
         for each key in m.config
-          oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/"+key, m.config[key].getString())
-          m.udpSocket.sendTo(m.controllerIP, m.config.commandPort.toInt(), oscMsg)
+          val = m.config[key]
+          if type(val) = "roString" or type(val) = "String" then
+            val = val.getString()
+          else if type(val) = "Integer" then
+            val = val.toStr()
+          end if
+          oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/"+key, val)
+          m.udpSocket.sendTo(m.controllerIP, m.config.commandPort, oscMsg)
         end for
         ip = m.nc.getCurrentConfig().ip4_address
-        oscMsg = oscBuildMessage("/brightsign/"+m.config.playerID+"/config/ip",ip.getString())
-        m.udpSocket.sendTo(m.controllerIP,m.config.commandPort.toInt(), oscMsg)
+        oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/ip",ip.getString())
+        m.udpSocket.sendTo(m.controllerIP,m.config.commandPort, oscMsg)
       end if
     else if msg = "flash" then
       m.updateScripts()
@@ -414,15 +422,17 @@ end function
 function updateConfig(key, value)
   print "Received a new key:", key
   print "Received a new value:", value
-  if type(value) = "roString" then
-    value = value.getString()
-  end if
   m.config.addReplace(key,value)
   json = FormatJSON(m.config)
   print "Saving new configuration..."
   for each key in m.config
     print key, m.config[key]
   end for
+  if type(value) = "roString" then
+    value = value.getString()
+  else if type(value) = "Integer" then
+    value = value.toStr()
+  end if
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/"+key)
   m.apiRequest.asyncPutFromString("password="+m.password+"&"+key+"="+value)
@@ -479,7 +489,7 @@ function transportMachine()
   else if m.transportState = "idle" then
   else if m.transportState = "starting" then
     if m.config.syncMode = "leader" then 
-      m.udpSocket.sendTo("239.192.2."+m.config.syncGroup, 9500, "start")
+      m.udpSocket.sendTo("239.192.2."+m.config.syncGroup.toStr(), 9500, "start")
     end if
     if m.video.getPlaybackPosition() <> 0 
       print "Seeking to beginning which would cause delay"
@@ -491,7 +501,7 @@ function transportMachine()
     m.transportState = "submitting timestamp"
   else if m.transportState = "submitting timestamp" then
     if m.config.syncMode = "follower" then
-      sleep(((m.config.syncGroup.toInt()+1) MOD 10)*5)
+      sleep(((m.config.syncGroup+1) MOD 10)*5)
     end if
     if m.config.updateWeb = "on" then
       m.submitTimestamp()
@@ -506,7 +516,7 @@ function transportMachine()
       else if m.config.syncMode = "leader" then
         m.video.pause()
         m.video.seek(0)
-        sleep(m.config.looppointleaderdelay.toInt())
+        sleep(m.config.looppointleaderdelay)
         m.transportState = "starting"
       else if m.config.syncMode = "follower" then
         m.video.pause()
