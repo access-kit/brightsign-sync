@@ -103,9 +103,9 @@ end function
 
 function loadVideoFile()
   print "Preloading video..."
-  if MatchFiles("/", "*.mp4").count() = 0 then
+  if MatchFiles("/", "*.mp4").count() = 0 and MatchFiles("/","*.mov").count() = 0 then
     print("!!!! WARNING !!!!")
-    print("!!!! No MP4 files found !!!!")
+    print("!!!! No MP4 or MOV files found !!!!")
     m.transportState = "noValidVideo"
     m.clock.state = "idle"
     m.meta99 = CreateObject("roAssociativeArray")
@@ -118,9 +118,9 @@ function loadVideoFile()
     sleep(5000)
   else 
     if m.video.getFilePlayability(m.config.videopath).video <> "playable" then 
-      mp4List = MatchFiles("/","*.mp4")
+      movList = MatchFiles("/","*.mov")
       playable = False
-      for each file in mp4List
+      for each file in movList 
         if m.video.getFilePlayability(file).video = "playable" then
           m.updateConfig("videopath",file)
           playable = True
@@ -128,8 +128,19 @@ function loadVideoFile()
         end if
       end for
       if not playable then
+        mp4List = MatchFiles("/","*.mp4")
+        playable = False
+        for each file in mp4List
+          if m.video.getFilePlayability(file).video = "playable" then
+            m.updateConfig("videopath",file)
+            playable = True
+            EXIT FOR
+          end if
+        end for
+      end if
+      if not playable then
         print("!!!! WARNING !!!!")
-        print("!!!! MP4s exist but are not playable videos !!!")
+        print("!!!! MP4s or MOVs exist but are not playable videos !!!")
         m.transportState = "noValidVideo"
         m.clock.state = "idle"
         m.meta99 = CreateObject("roAssociativeArray")
@@ -138,7 +149,7 @@ function loadVideoFile()
         m.meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
         m.meta99.AddReplace("TextColor", &Hffff00) ' Yellow
         m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
-        m.tf99.SendBlock("No valid video files found!")
+        m.tf99.SendBlock("No valid video files found! Provided MP4 or MOV was not valid.")
         sleep(5000)
       end if
     end if
