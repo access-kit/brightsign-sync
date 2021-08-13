@@ -1,5 +1,5 @@
 {
-	"useStaticIP":true,
+	"useStaticIP":false,
 	"ipAddress":"192.168.0.95",
 	"netmask":"255.255.255.0",
 	"gateway":"192.168.0.1",
