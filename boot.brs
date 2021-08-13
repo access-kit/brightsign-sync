@@ -153,7 +153,7 @@ function bootSetup()
       ' Internet could not connect for some reason
     else if msg.getResponseCode() <> 200 then
       ' Handle resource not found
-      print "Could not connect to Access Kit service.  Error code: "+msg.getResponseCode()
+      print "Could not connect to Access Kit service.  Error code: "+msg.getResponseCode().toStr()
     else 
       data = ParseJSON(msg.getString())
       if uniqueID <> data.serialnumber then
@@ -179,7 +179,7 @@ function bootSetup()
       ' Updates remote with new IP
       print("Sending IP address to Access-Kit API...")
       configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
-      configRequest.asyncPutFromString("password="+password+"&ipAddress="+data.ipAddress)
+      configRequest.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
     end if
   else
     ' register with access-kit
