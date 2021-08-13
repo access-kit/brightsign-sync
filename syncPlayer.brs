@@ -55,6 +55,7 @@ function createSyncPlayer(_config as Object) as Object
   player.contentCMSState = "idle"
   
   if player.config.syncMode = "leader" then
+    print("Leader is sleeping to let others boot up...")
     sleep(player.config.startupleaderdelay)
     player.transportState = "starting"
   else if player.config.syncMode = "solo"

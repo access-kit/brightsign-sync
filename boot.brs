@@ -9,6 +9,7 @@ function bootSetup()
   end if
 
 
+  networkConfig = ParseJSON(ReadAsciiFile("network.json"))
   accessKitReg = createObject("roRegistrySection", "accessKit")
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
@@ -47,13 +48,65 @@ function bootSetup()
     end if
   end if
 
-  ' DHCP SETUP
-  if not n.getCurrentConfig().dhcp then
-    n.setDHCP()
-    n.apply()
-    registry.flush()
-    print("Should reboot because dhcp was not configured")
-    shouldReboot = true
+  ' IP SETUP
+  if not networkConfig.useStaticIP then
+    if not n.getCurrentConfig().dhcp then
+      textbox.SendBlock("Switching to DHCP (will reboot after setup is complete)")
+      sleep(3000)
+      textbox.Cls()
+      n.setDHCP()
+      n.apply()
+      registry.flush()
+      print("Should reboot because dhcp was not configured")
+      shouldReboot = true
+    else
+      print "Using DHCP."
+    end if
+  else 
+    currentConfig = n.getCurrentConfig()
+    shouldUpdateConfig = false
+    if not currentConfig.ip4_address = networkConfig.ipAddress then 
+      shouldUpdateConfig = true
+    end if
+    if not currentConfig.ip4_netmask = networkConfig.netmask then 
+      shouldUpdateConfig = true
+    end if
+    if not currentConfig.ip4_gateway = networkConfig.gateway then 
+      shouldUpdateConfig = true
+    end if
+    if not currentConfig.ip4_broadcast = networkConfig.broadcast then 
+      shouldUpdateConfig = true
+    end if
+    if shouldUpdateConfig then
+      shouldReboot = true
+      textbox.SendBlock("Attempting to set up Static IP Address...")
+      sleep(3000)
+      textbox.Cls()
+      textbox.SendBlock("IP: "+networkConfig.ipAddress)
+      sleep(1000)
+      textbox.Cls()
+      textbox.SendBlock("Netmask: "+networkConfig.netmask)
+      sleep(1000)
+      textbox.Cls()
+      textbox.SendBlock("Broadcast: "+networkConfig.broadcast)
+      sleep(1000)
+      textbox.Cls()
+      textbox.SendBlock("Gateway: "+networkConfig.gateway)
+      sleep(1000)
+      textbox.Cls()
+      textbox.SendBlock("DNS Server: "+networkConfig.dns)
+      sleep(1000)
+      textbox.Cls()
+      n.setIP4Address(networkConfig.ipAddress)
+      n.setIP4Netmask(networkConfig.netmask)
+      n.setIP4Gateway(networkConfig.gateway)
+      n.setIP4Broadcast(networkConfig.broadcast)
+      n.addDNSServer(networkConfig.dns)
+      n.apply()
+      registry.flush()
+    else
+      print "Using previously configured static ip."
+    end if
   end if
 
   ' SSH and DWS
@@ -83,6 +136,10 @@ function bootSetup()
     sleep(4000)
     shouldReboot = true
   end if 
+
+  if shouldReboot then
+    RebootSystem()
+  end if
 
   ' Internet Connectivity Test
   if initstatus.testinternet = "true" then 
@@ -129,9 +186,11 @@ function bootSetup()
   deviceInfo = createObject("roDeviceInfo")
   uniqueID = deviceInfo.getDeviceUniqueID()
   currentIP = n.getCurrentConfig().ip4_address
+  macAddress = n.getCurrentConfig().ethernet_mac
   currentHostname = n.getHostName()
   print "BrightSign Serial Number:", uniqueID
   print "BrightSign IP Address:", currentIP
+  print "BrightSign Mac Address:", macAddress
   print "BrightSign Hostname:", currentHostname
   print "Checking Access-Kit provisioning status..."
 
@@ -177,9 +236,13 @@ function bootSetup()
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
       WriteAsciiFile("config.json",formatjson(data))
       ' Updates remote with new IP
-      print("Sending IP address to Access-Kit API...")
-      configRequest.setUrl(data.syncURL+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
-      configRequest.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
+      print("Sending IP and MAC address to Access-Kit API...")
+      ipReq = createObject("rourltransfer")
+      ipReq.setUrl(previousConfig.syncURL+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
+      ipReq.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
+      macReq = createObject("rourltransfer")
+      macReq.setUrl(data.syncURL+"/api/mediaplayer/"+id.toStr()+"/macAddress")
+      macReq.asyncPostFromString("password="+password+"&macAddress="+macAddress)
     end if
   else
     ' register with access-kit
@@ -200,7 +263,7 @@ function bootSetup()
     requestPlayerID.setURL(initialConfigData.syncURL+"/api/mediaplayer/serialnumber")
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
-    requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP+"&syncURL="+initialConfigData.syncURL)
+    requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP+"&syncURL="+initialConfigData.syncURL+"&macAddress="+macAddress)
 
     msg = requestPlayerIDPort.waitmessage(5000)
 
