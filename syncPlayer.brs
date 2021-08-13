@@ -379,9 +379,17 @@ function handleUDP()
             val = val.getString()
           else if type(val) = "Integer" then
             val = val.toStr()
+          else if type(val) = "Boolean" then
+            if val = true then
+              val = "true"
+            else
+              val = "false"
+            end if
           end if
-          oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/"+key, val)
-          m.udpSocket.sendTo(m.controllerIP, m.config.commandPort, oscMsg)
+          if type(val) <> "Invalid" then 
+            oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/"+key, val)
+            m.udpSocket.sendTo(m.controllerIP, m.config.commandPort, oscMsg)
+          end if
         end for
         ip = m.nc.getCurrentConfig().ip4_address
         oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/ip",ip.getString())
