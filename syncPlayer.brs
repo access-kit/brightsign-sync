@@ -25,28 +25,28 @@ function createSyncPlayer(_config as Object) as Object
     player.config.volume = 15
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/volume")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&volume="+player.config.volume.toStr())
+    player.apiRequest.asyncPostFromString("password="+player.password+"&volume="+player.config.volume.toStr())
   end if
 
   if player.config.startupleaderdelay = invalid then
     player.config.startupleaderdelay = 30000
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/startupleaderdelay")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&startupleaderdelay="+player.config.startupleaderdelay.toStr())
+    player.apiRequest.asyncPostFromString("password="+player.password+"&startupleaderdelay="+player.config.startupleaderdelay.toStr())
   end if 
 
   if player.config.looppointleaderdelay = invalid then
     player.config.looppointleaderdelay = 100
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/looppointleaderdelay")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&looppointleaderdelay="+player.config.looppointleaderdelay.toStr())
+    player.apiRequest.asyncPostFromString("password="+player.password+"&looppointleaderdelay="+player.config.looppointleaderdelay.toStr())
   end if 
 
   if player.config.commandPort = invalid then
     player.config.commandPort = 9500
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/commandPort")
-    player.apiRequest.asyncPutFromString("password="+player.password+"&commandPort="+player.config.commandPort.toStr())
+    player.apiRequest.asyncPostFromString("password="+player.password+"&commandPort="+player.config.commandPort.toStr())
   end if 
   
   
@@ -57,7 +57,9 @@ function createSyncPlayer(_config as Object) as Object
   if player.config.syncMode = "leader" then
     sleep(player.config.startupleaderdelay)
     player.transportState = "starting"
-  else
+  else if player.config.syncMode = "solo"
+    player.transportState = "starting"
+  else 
     player.transportState = "idle"
   end if
 
@@ -167,7 +169,7 @@ function loadVideoFile()
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
     if m.config.updateWeb = "on" then 
-      m.apiRequest.asyncPutFromString(updateDurationData)
+      m.apiRequest.asyncPostFromString(updateDurationData)
     end if 
 
     ' Window setup
@@ -238,9 +240,9 @@ end function
 
 function submitTimestamp() ' as String
   m.apiRequest.setUrl(m.apiEndpoint+"/timestamp")
-  putString = "password="+m.apiRequest.escape(m.password)+"&"
-  putString = putString +"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
-  m.apiRequest.asyncPutFromString(putString)
+  postString = "password="+m.apiRequest.escape(m.password)+"&"
+  postString = postString +"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(m.lastCycleStartedAt))
+  m.apiRequest.asyncPostFromString(postString )
   ' response = m.apiResponsePort .waitMessage(1000)
   ' if not response = invalid then
   '   response = response.getString()
@@ -425,8 +427,8 @@ function updateConfig(key, value)
   m.config.addReplace(key,value)
   json = FormatJSON(m.config)
   print "Saving new configuration..."
-  for each key in m.config
-    print key, m.config[key]
+  for each _key in m.config
+    print _key, m.config[_key]
   end for
   if type(value) = "roString" then
     value = value.getString()
@@ -435,7 +437,7 @@ function updateConfig(key, value)
   end if
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/"+key)
-  m.apiRequest.asyncPutFromString("password="+m.password+"&"+key+"="+value)
+  m.apiRequest.asyncPostFromString("password="+m.password+"&"+key+"="+value)
   if key = "videopath" then
     ' handler for specific key changes
   end if
@@ -449,7 +451,7 @@ function changeVideopath(newpath)
   print json
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/videopath")
-  m.apiRequest.asyncPutFromString("password="+m.password+"&videopath="+newpath)
+  m.apiRequest.asyncPostFromString("password="+m.password+"&videopath="+newpath)
 end function
 
 function dlContentToFile(url, filepath)
