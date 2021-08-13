@@ -10,6 +10,16 @@ function bootSetup()
 
 
   networkConfig = ParseJSON(ReadAsciiFile("network.json"))
+  if networkConfig = invalid then
+    networkConfig = createObject("roAssociativeArray")
+    networkConfig.addReplace("useStaticIP",false)
+    networkConfig.addReplace("ipAddress","192.168.0.2")
+    networkConfig.addReplace("gateway","192.168.0.1")
+    networkConfig.addReplace("broadcast","192.168.0.255")
+    networkConfig.addReplace("netmask","255.255.255.0")
+    networkConfig.addReplace("dns","8.8.8.8")
+    WriteAsciiFile("network.json",formatjson(networkConfig))
+  end if
   accessKitReg = createObject("roRegistrySection", "accessKit")
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
@@ -112,7 +122,7 @@ function bootSetup()
   ' SSH and DWS
   if accessKitReg.read("remoteAccessConfigured") <> "true" then
 
-    textbox.SendBlock("Setting up registries.")
+    textbox.SendBlock("Setting up SSH and Diagnostic Web Server.")
     sleep(2000)
     textbox.Cls()
 
@@ -130,7 +140,7 @@ function bootSetup()
     ' regSec.Write("ptp_domain", "0")
     ' regSec.Flush()
 
-    textbox.SendBlock("Registries written and flushed.  Restarting and loading main file.")
+    textbox.SendBlock("SSH and DWS setup.  Password: syncSign.")
     accessKitReg.write("remoteAccessConfigured", "true")
     accessKitReg.flush()
     sleep(4000)
@@ -225,10 +235,13 @@ function bootSetup()
       else
         print "Player ID matched remote known Player ID."
       end if
-      if n.getHostName() <> "access-kit-mediaplayer-"+data.id.tostr() then
-        n.setHostName("access-kit-mediaplayer-"+data.id.tostr())
+      if n.getHostName() <> "access-kit-"+data.nickname+"-"+data.id.tostr() then
+        n.setHostName("access-kit-"+data.nickname+"-"+data.id.tostr())
         n.apply()
         print "Hostname updated.  Will reboot."
+        textbox.SendBlock("Updating hostname and then will reboot.  New hostname: "+"access-kit-"+data.nickname+"-"+data.id.tostr() )
+        sleep(3000)
+        textbox.Cls()
         shouldReboot = true
       end if
       print("Acquired config data.")
@@ -284,10 +297,16 @@ function bootSetup()
         accessKitReg.write("id",data.id.toStr())
         accessKitReg.flush()
         registry.flush()
-        if n.getHostName() <> "access-kit-mediaplayer-"+data.id.toStr() then
-          n.setHostName("access-kit-mediaplayer-"+data.id.toStr())
+        textbox.SendBlock("Succesfully registered!  Player ID: "+data.id.toStr())
+        sleep(3000)
+        textbox.Cls()
+        if n.getHostName() <> "access-kit-"+data.nickname+"-"+data.id.toStr() then
+          n.setHostName("access-kit-"+data.nickname+"-"+data.id.toStr())
           n.apply()
           print "Hostname updated."
+          textbox.SendBlock("Updating hostname and then will reboot.  New hostname: "+ "access-kit-"+data.nickname+"-"+data.id.toStr())
+          sleep(3000)
+          textbox.Cls()
           shouldReboot = true
         end if
       else 
