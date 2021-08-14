@@ -79,6 +79,12 @@ function bootSetup()
       print("Should reboot because dhcp was not configured")
       shouldReboot = true
     else
+      networkConfig.addReplace("ipAddress",n.getCurrentConfig().ip4_address)
+      networkConfig.addReplace("netmask",n.getCurrentConfig().ip4_netmask)
+      networkConfig.addReplace("broadcast",n.getCurrentConfig().ip4_broadcast)
+      networkConfig.addReplace("gateway",n.getCurrentConfig().ip4_gateway)
+      networkConfig.addReplace("dns",n.getCurrentConfig().dns_servers[0])
+      writeasciifile("network.json",formatjson(networkconfig))
       print "Using DHCP."
     end if
   else 
