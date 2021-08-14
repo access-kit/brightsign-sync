@@ -26,6 +26,11 @@ function bootSetup()
   shouldReboot = False
   textbox = createTextBox()
 
+  if initstatus.runnetworkdiagnostics = "true" then
+    writeasciifile("interfaceTestResults.json",formatjson(n.testinterface()))
+    writeasciifile("internetConnectivityResults.json",formatjson(n.testInternetConnectivity()))
+  end if
+
   
 
 
@@ -40,8 +45,8 @@ function bootSetup()
     if accessKitReg.read("resetComplete") <> "true" or initstatus.shouldfactoryreset = "true" then
       ' If the resetComplete registry entry does not exist, or the init file is set to force a reset, then...
 
-      textbox.SendBlock("Deleting Recovery settings.")
-      sleep(2000)
+      textbox.SendBlock("Clearing registries/settings...")
+      sleep(3000)
       textbox.Cls()
 
       mfgn=createobject("roMfgtest")
@@ -52,11 +57,15 @@ function bootSetup()
       WriteAsciiFile("init.json", FormatJSON(initStatus))
       
 
-      textbox.SendBlock("Factory reset complete.  Restarting and then will configure network")
+      textbox.SendBlock("Registry reset complete.  Restarting and then will configure network.")
       sleep(4000)
       RebootSystem()
     end if
   end if
+
+  currentIP = n.getCurrentConfig().ip4_address
+  macAddress = n.getCurrentConfig().ethernet_mac
+  currentHostname = n.getHostName()
 
   ' IP SETUP
   if not networkConfig.useStaticIP then
@@ -133,16 +142,16 @@ function bootSetup()
     n.SetupDWS({open:"syncSign"})
 
     n.Apply()
-    reg.flush()
 
 
     ' regSec = CreateObject("roRegistrySection", "networking")
     ' regSec.Write("ptp_domain", "0")
     ' regSec.Flush()
 
-    textbox.SendBlock("SSH and DWS setup.  Password: syncSign.")
+    textbox.SendBlock("SSH and DWS setup.  Password: syncSign.  Rebooting to flush registries... ")
     accessKitReg.write("remoteAccessConfigured", "true")
     accessKitReg.flush()
+    registry.flush()
     sleep(4000)
     shouldReboot = true
   end if 
@@ -235,11 +244,11 @@ function bootSetup()
       else
         print "Player ID matched remote known Player ID."
       end if
-      if n.getHostName() <> "access-kit-"+data.nickname+"-"+data.id.tostr() then
-        n.setHostName("access-kit-"+data.nickname+"-"+data.id.tostr())
+      if n.getHostName() <> data.nickname+"-"+data.id.tostr() then
+        n.setHostName(data.nickname+"-"+data.id.tostr())
         n.apply()
         print "Hostname updated.  Will reboot."
-        textbox.SendBlock("Updating hostname and then will reboot.  New hostname: "+"access-kit-"+data.nickname+"-"+data.id.tostr() )
+        textbox.SendBlock("Updating hostname and then will reboot.  New hostname: "+data.nickname+"-"+data.id.tostr() )
         sleep(3000)
         textbox.Cls()
         shouldReboot = true
@@ -267,6 +276,13 @@ function bootSetup()
 
     initialConfigData = ParseJSON(ReadAsciiFile("config.json"))
     password = initialConfigData.password
+    if password = invalid then
+      password = "null"
+      print("No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      textbox.SendBlock(" No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      sleep(4000)
+      textbox.Cls()
+    end if
     accessKitReg.write("serialnumber",uniqueID)
     accessKitReg.write("password",password)
     accessKitReg.flush()
@@ -283,11 +299,15 @@ function bootSetup()
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
       textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+      sleep(4000)
+      textbox.cls()
+      textbox.SendBlock("The player will now startup with limited functionality.")
+      sleep(4000)
+      textbox.cls()
       print("failed to connect.")
-      while true
-        sleep(1000)
-        print("Failed to connect, caught in loop...")
-      end while
+      accessKitReg.write("provisioned","false")
+      accessKitReg.flush()
+      registry.flush()
     else 
       responseCode = msg.getResponseCode()
       if responseCode = 200 then
@@ -295,17 +315,18 @@ function bootSetup()
         data = ParseJSON(response)
         WriteAsciiFile("config.json",FormatJSON(data))
         accessKitReg.write("id",data.id.toStr())
+        accessKitReg.write("provisioned","true")
         accessKitReg.flush()
         registry.flush()
         textbox.SendBlock("Succesfully registered!  Player ID: "+data.id.toStr())
-        sleep(3000)
+        sleep(7000)
         textbox.Cls()
-        if n.getHostName() <> "access-kit-"+data.nickname+"-"+data.id.toStr() then
-          n.setHostName("access-kit-"+data.nickname+"-"+data.id.toStr())
+        if n.getHostName() <> data.nickname+"-"+data.id.toStr() then
+          n.setHostName(data.nickname+"-"+data.id.toStr())
           n.apply()
           print "Hostname updated."
-          textbox.SendBlock("Updating hostname and then will reboot.  New hostname: "+ "access-kit-"+data.nickname+"-"+data.id.toStr())
-          sleep(3000)
+          textbox.SendBlock("Updating hostname and then will reboot.  New hostname: "+ data.nickname+"-"+data.id.toStr())
+          sleep(5000)
           textbox.Cls()
           shouldReboot = true
         end if
@@ -313,9 +334,15 @@ function bootSetup()
         textbox.Cls()
         textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
         print("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
-        while true
-          sleep(1000)
-        end while
+        sleep(4000)
+        textbox.cls()
+        textbox.SendBlock("The player will now startup with limited functionality.")
+        sleep(4000)
+        textbox.cls()
+        print("failed to connect.")
+        accessKitReg.write("provisioningFailure","false")
+        accessKitReg.flush()
+        registry.flush()
       end if
     end if
   end if
@@ -341,6 +368,6 @@ function createTextBox()
   textboxConfig.AddReplace("CharHeight", 50)
   textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
   textboxConfig.AddReplace("TextColor", &Hffffff) ' White
-  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 2, textboxConfig)
+  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 4, textboxConfig)
   return textbox
 end function

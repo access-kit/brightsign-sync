@@ -6,7 +6,12 @@ function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
   player.accessKitReg = createObject("roRegistrySection","accessKit")
   player.password = player.accessKitReg.read("password")
-  player.id = player.accessKitReg.read("id").toInt()
+  player.provisioned = player.accessKitReg.read("provisioned")
+  if player.provisioned = "true" then
+    player.id = player.accessKitReg.read("id").toInt()
+  else 
+    player.id = 1
+  end if
   player.config = _config
   player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.id.toStr()
   player.nc = createObject("roNetworkConfiguration", 0)
@@ -21,6 +26,48 @@ function createSyncPlayer(_config as Object) as Object
   player.downloadRequest.setPort(player.downloadResponsePort)
 
   ' Ensure that necessary config values are present
+  if player.config.syncMode = invalid then
+    player.config.addReplace("syncMode","solo")
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/syncMode")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&syncMode="+player.config.syncMode)
+  end if
+
+  if player.config.syncGroup= invalid then
+    player.config.addReplace("syncGroup",1)
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/syncGroup")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&syncGroup="+player.config.syncGroup.toStr())
+  end if
+
+  if player.config.workID = invalid then
+    player.config.addReplace("workID",1)
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/workID")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&workID="+player.config.workID.toStr())
+  end if
+
+  if player.config.videopath = invalid then
+    player.config.addReplace("videopath","auto")
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/videopath")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&videopath="+player.config.videopath)
+  end if
+
+  if player.config.updateWeb = invalid then
+    player.config.addReplace("updateWeb","on")
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/updateWeb")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&updateWeb="+player.config.updateWeb)
+  end if
+
+  if player.config.nickname = invalid then
+    player.config.addReplace("nickname","mediaplayer")
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/nickname")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&nickname="+player.config.nickname)
+  end if
+
   if player.config.volume = invalid then
     player.config.volume = 15
     WriteAsciiFile("config.json", FormatJSON(player.config))
@@ -116,24 +163,24 @@ end function
 
 function loadVideoFile()
   print "Preloading video..."
-  if MatchFiles("/", "*.mp4").count() = 0 then
+  if MatchFiles("/", "*.mp4").count() = 0 and MatchFiles("/","*.mov").count() = 0 then
     print("!!!! WARNING !!!!")
-    print("!!!! No MP4 files found !!!!")
+    print("!!!! No MP4 or MOV files found !!!!")
     m.transportState = "noValidVideo"
     m.clock.state = "idle"
     m.meta99 = CreateObject("roAssociativeArray")
     m.meta99.AddReplace("CharWidth", 30)
     m.meta99.AddReplace("CharHeight", 50)
-    m.meta99.AddReplace("BackgroundColor", &H000000) ' Black
-    m.meta99.AddReplace("TextColor", &Hffffff) ' White
+    m.meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
+    m.meta99.AddReplace("TextColor", &Hffffff) ' Yellow
     m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
     m.tf99.SendBlock("No valid video files found!")
     sleep(5000)
   else 
     if m.video.getFilePlayability(m.config.videopath).video <> "playable" then 
-      mp4List = MatchFiles("/","*.mp4")
+      movList = MatchFiles("/","*.mov")
       playable = False
-      for each file in mp4List
+      for each file in movList 
         if m.video.getFilePlayability(file).video = "playable" then
           m.updateConfig("videopath",file)
           playable = True
@@ -141,17 +188,28 @@ function loadVideoFile()
         end if
       end for
       if not playable then
+        mp4List = MatchFiles("/","*.mp4")
+        playable = False
+        for each file in mp4List
+          if m.video.getFilePlayability(file).video = "playable" then
+            m.updateConfig("videopath",file)
+            playable = True
+            EXIT FOR
+          end if
+        end for
+      end if
+      if not playable then
         print("!!!! WARNING !!!!")
-        print("!!!! MP4s exist but are not playable videos !!!")
+        print("!!!! MP4s or MOVs exist but are not playable videos !!!")
         m.transportState = "noValidVideo"
         m.clock.state = "idle"
         m.meta99 = CreateObject("roAssociativeArray")
         m.meta99.AddReplace("CharWidth", 30)
         m.meta99.AddReplace("CharHeight", 50)
-        m.meta99.AddReplace("BackgroundColor", &H000000) ' Black
-        m.meta99.AddReplace("TextColor", &Hffffff) ' White
+        m.meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
+        m.meta99.AddReplace("TextColor", &Hffffff) ' Yellow
         m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
-        m.tf99.SendBlock("No valid video files found!")
+        m.tf99.SendBlock("No valid video files found! Provided MP4 or MOV was not valid.")
         sleep(5000)
       end if
     end if
@@ -162,7 +220,7 @@ function loadVideoFile()
 
     ' Update the server with the newly determined timestamp
     print "Updating duration on server..."
-    m.apiRequest.setUrl(m.apiEndpoint+"/duration")
+    m.apiRequest.setUrl(m.apiEndpoint.+"/duration")
     updateDurationData = "password="+m.password+"&"
     durationWithDelay = m.duration
     if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
@@ -495,8 +553,18 @@ end function
 
 function transportMachine()
   if m.transportState = "noValidVideo" then
-    m.tf99.SendBlock("No valid video files found!")
-    sleep(200)
+    if m.idWrittenToScreeen = true then
+      sleep(200)
+    else
+      m.idWrittenToScreeen = true
+      m.tf99.cls()
+      if m.provisioned <> "true" then
+        idToDisplay = "<No ID, not yet registered with AK>"
+      else 
+        idToDisplay = m.id.toStr()
+      end if
+      m.tf99.SendBlock("Access Kit ID / IP Address: "+idToDisplay+" / "+m.nc.getCurrentConfig().ip4_address)
+    end if
   else if m.transportState = "idle" then
   else if m.transportState = "starting" then
     if m.config.syncMode = "leader" then 
@@ -569,8 +637,8 @@ function updateScripts()
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
   meta99.AddReplace("CharHeight", 50)
-  meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-  meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+  meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
+  meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
   tf99.SendBlock("Downloading new scripts.")
   sleep(2000)
@@ -616,8 +684,8 @@ function updateContent()
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
   meta99.AddReplace("CharHeight", 50)
-  meta99.AddReplace("BackgroundColor", &H101010) ' Dark grey
-  meta99.AddReplace("TextColor", &Hffff00) ' Yellow
+  meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
+  meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
 
   tf99.SendBlock("Downloading new content.")
