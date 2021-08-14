@@ -693,5 +693,5 @@ function updateContent()
   request = createObject("roUrlTransfer")
   request.setUrl(m.config.videoURL)
   request.getToFile(m.config.videopath)
-  RestartScript()
+  RebootSystem()
 end function
