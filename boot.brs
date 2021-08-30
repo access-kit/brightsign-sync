@@ -23,12 +23,14 @@ function bootSetup()
   accessKitReg = createObject("roRegistrySection", "accessKit")
   n = CreateObject("roNetworkConfiguration", 0)
   registry = CreateObject("roRegistry")
+  networkConfigLogger = CreateObject("roAssociativeArray")
   shouldReboot = False
   textbox = createTextBox()
 
   if initstatus.runnetworkdiagnostics = "true" then
     writeasciifile("interfaceTestResults.json",formatjson(n.testinterface()))
     writeasciifile("internetConnectivityResults.json",formatjson(n.testInternetConnectivity()))
+    writeasciifile("networkConfigurationCurrentConfig.json",formatjson(n.getCurrentConfig()))
   end if
 
   
@@ -91,44 +93,63 @@ function bootSetup()
     currentConfig = n.getCurrentConfig()
     shouldUpdateConfig = false
     if not currentConfig.ip4_address = networkConfig.ipAddress then 
+      networkConfigLogger.addReplace("old_ip4",currentConfig.ip4_address)
+      networkConfigLogger.addReplace("new_ip4",networkConfig.ipAddress)
       shouldUpdateConfig = true
     end if
     if not currentConfig.ip4_netmask = networkConfig.netmask then 
+      networkConfigLogger.addReplace("old_netmask",currentConfig.ip4_netmask)
+      networkConfigLogger.addReplace("new_netmask",networkConfig.netmask)
       shouldUpdateConfig = true
     end if
     if not currentConfig.ip4_gateway = networkConfig.gateway then 
+      networkConfigLogger.addReplace("old_gateway",currentConfig.ip4_gateway)
+      networkConfigLogger.addReplace("new_gateway",networkConfig.gateway)
       shouldUpdateConfig = true
     end if
     if not currentConfig.ip4_broadcast = networkConfig.broadcast then 
+      networkConfigLogger.addReplace("old_broadcast",currentConfig.ip4_broadcast)
+      networkConfigLogger.addReplace("new_broadcast",networkConfig.broadcast)
       shouldUpdateConfig = true
     end if
     if shouldUpdateConfig then
-      shouldReboot = true
-      textbox.SendBlock("Attempting to set up Static IP Address...")
-      sleep(3000)
-      textbox.Cls()
-      textbox.SendBlock("IP: "+networkConfig.ipAddress)
-      sleep(1000)
-      textbox.Cls()
-      textbox.SendBlock("Netmask: "+networkConfig.netmask)
-      sleep(1000)
-      textbox.Cls()
-      textbox.SendBlock("Broadcast: "+networkConfig.broadcast)
-      sleep(1000)
-      textbox.Cls()
-      textbox.SendBlock("Gateway: "+networkConfig.gateway)
-      sleep(1000)
-      textbox.Cls()
-      textbox.SendBlock("DNS Server: "+networkConfig.dns)
-      sleep(1000)
-      textbox.Cls()
-      n.setIP4Address(networkConfig.ipAddress)
-      n.setIP4Netmask(networkConfig.netmask)
-      n.setIP4Gateway(networkConfig.gateway)
-      n.setIP4Broadcast(networkConfig.broadcast)
-      n.addDNSServer(networkConfig.dns)
-      n.apply()
-      registry.flush()
+      if initStatus.debugNetworkConfig = "true" then
+        result = eval(ReadAsciiFile("networkConfigCodeSnippet.txt"))
+        textbox.cls()
+        textbox.sendblock("Network Configuration Code Evaluation Response Code:"+result.toStr())
+        while True
+          sleep(3000)
+        end while
+      else 
+        shouldReboot = true
+        WriteAsciiFile("networkConfigurationChangeLog.json",FormatJSON(networkConfigLogger))
+        textbox.SendBlock("Attempting to set up Static IP Address...")
+        sleep(3000)
+        textbox.Cls()
+        textbox.SendBlock("IP: "+networkConfig.ipAddress)
+        sleep(1000)
+        textbox.Cls()
+        textbox.SendBlock("Netmask: "+networkConfig.netmask)
+        sleep(1000)
+        textbox.Cls()
+        textbox.SendBlock("Broadcast: "+networkConfig.broadcast)
+        sleep(1000)
+        textbox.Cls()
+        textbox.SendBlock("Gateway: "+networkConfig.gateway)
+        sleep(1000)
+        textbox.Cls()
+        textbox.SendBlock("DNS Server: "+networkConfig.dns)
+        sleep(1000)
+        textbox.Cls()
+        n.setIP4Address(networkConfig.ipAddress)
+        n.setIP4Netmask(networkConfig.netmask)
+        n.setIP4Gateway(networkConfig.gateway)
+        n.setIP4Broadcast(networkConfig.broadcast)
+        n.addDNSServer(networkConfig.dns)
+        n.apply()
+        registry.flush()
+        WriteAsciiFile("networkConfigurationCompletion.txt",FormatJSON("Done!"))
+      end if
     else
       print "Using previously configured static ip."
     end if

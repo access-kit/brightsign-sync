@@ -3,5 +3,7 @@
     "boottoshell" : "false",
     "shouldfactoryreset" : "false",
     "justnetworkrebooted" : "false",
-    "testinternet" : "false"
+    "testinternet" : "false",
+    "debugNetworkConfig" : "false",
+    "runnetworkdiagnostics" : "false"
 }
