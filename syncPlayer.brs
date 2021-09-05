@@ -157,7 +157,7 @@ function createSyncPlayer(_config as Object) as Object
   player.loadVideoFile()
 
   ' Create a subtitler engine
-  player.subtitler = createSubtitler()
+  player.subtitler = createSubtitler(player)
 
   ' UDP Setup
   player.setupUDP()
