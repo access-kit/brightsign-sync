@@ -25,6 +25,18 @@ function createSyncPlayer(_config as Object) as Object
   player.downloadResponsePort = createObject("roMessagePort")
   player.downloadRequest.setPort(player.downloadResponsePort)
 
+  player.configRequest = createObject("roUrlTransfer")
+  player.configRequest.setUrl(player.apiEndpoint)
+  player.configResponsePort = createObject("roMessagePort")
+  player.configRequest.setPort(player.configResponsePort)
+  player.configMetronome = createObject("roTimer")
+  player.configMetronome.setElapsed(10,0)
+  player.configMetronomeTriggerPort = createObject("roMessagePort")
+  player.configMetronome.setPort(player.configMetronomeTriggerPort)
+  player.configPollingState = "waitingToPoll"
+  player.configMetronome.start()
+  player.configPoller = configPoller
+
   ' Ensure that necessary config values are present
   if player.config.syncMode = invalid then
     player.config.addReplace("syncMode","solo")
@@ -375,9 +387,9 @@ function handleUDP()
       m.video.setRectangle(m.window)
     else if msg="shrink" then 
       m.window.setHeight(m.window.getHeight() - 6)
-      m.window.setY(m.window.getY()+3)
-      m.window.setWidth(m.window.getWidth() - 6*m.aspectRatio)
-      m.window.setX(m.window.getX()+3*m.aspectRatio)
+      m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+      m.window.setWidth(m.window.getHeight()*m.aspectRatio)
+      m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
       m.video.setRectangle(m.window)
     else if msg="nudgeUp" then 
       m.window.setY(m.window.getY() - 5)
@@ -627,6 +639,7 @@ function runMachines()
     m.sync()
     m.firmwareCMS()
     m.contentCMS()
+    m.configPoller()
   end while
 end function
 
@@ -697,4 +710,36 @@ function updateContent()
   end if
   request.getToFile(m.config.videoPath)
   RebootSystem()
+end function
+
+function configPoller()
+  ' subtitle state polling engine
+  if m.config.pollForConfigChanges then
+    if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
+      if m.configPollingState = "waitingToPoll"
+        msg = m.configMetronomeTriggerPort.getMessage()
+        if msg <> invalid then
+          m.configRequest.asyncGetToString()
+          m.configMetronome.setElapsed(1,0)
+          m.configMetronome.start()
+          m.configPollingState = "waitingForResponse"
+        end if
+      else if m.configPollingState = "waitingForResponse"
+        msg = m.configResponsePort.getMessage()
+        if msg <> invalid
+          if msg.getResponseCode() = 200 then
+            data = ParseJSON(msg.getString())
+            m.config = data
+            m.video.setVolume(m.config.volume)
+            WriteAsciiFile("config.json",FormatJSON(data))
+            
+          end if
+          m.configPollingState="waitingToPoll"
+        end if
+      end if
+
+    else 
+      ' block api requests during critical sync windows
+    end if
+  end if
 end function
