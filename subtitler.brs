@@ -86,7 +86,7 @@ function subtitleMachine()
 
   ' subtitle state polling engine
   if m.parent.config.pollForSubtitleState then
-    if and m.video.getPlaybackPosition() > 1000 or m.video.getPlaybackPosition < m.parent.duration - 30000 then
+    if m.video.getPlaybackPosition() > 1000 or m.video.getPlaybackPosition < m.parent.duration - 30000 then
       if m.pollingState = "waitingToPoll"
         msg = m.metronomeTrigger.getMessage()
         if msg <> invalid then
