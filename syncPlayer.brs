@@ -387,9 +387,9 @@ function handleUDP()
       m.video.setRectangle(m.window)
     else if msg="shrink" then 
       m.window.setHeight(m.window.getHeight() - 6)
-      m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
-      m.window.setWidth(m.window.getHeight()*m.aspectRatio)
-      m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
+      m.window.setY(m.window.getY()+3)
+      m.window.setWidth(m.window.getWidth() - 6*m.aspectRatio)
+      m.window.setX(m.window.getX()+3*m.aspectRatio)
       m.video.setRectangle(m.window)
     else if msg="nudgeUp" then 
       m.window.setY(m.window.getY() - 5)
