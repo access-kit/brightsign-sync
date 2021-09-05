@@ -190,7 +190,7 @@ function bootSetup()
   ' Internet Connectivity Test
   if initstatus.testinternet = "true" then 
     testReq = createObject("rourltransfer")
-    testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncURL+"/api/sync?reqSentAt=0")
+    testReq.setURL(ParseJSON(ReadAsciiFile("config.json")).syncUrl+"/api/sync?reqSentAt=0")
     testReqPort = createObject("roMessagePort")
     testReq.setPort(testReqPort)
     testReq.asyncGetToString()
@@ -248,7 +248,7 @@ function bootSetup()
     print "Checking for new configuration..."
     ' check for new config data
     configRequest = createObject("rourltransfer")
-    configRequest.setUrl(previousConfig.syncURL+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
+    configRequest.setUrl(previousConfig.syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
@@ -261,7 +261,7 @@ function bootSetup()
       print "Could not connect to Access Kit service.  Error code: "+msg.getResponseCode().toStr()
     else 
       data = ParseJSON(msg.getString())
-      if uniqueID <> data.serialnumber then
+      if uniqueID <> data.serialNumber then
         ' TODO: Handle conflict between player id and putativeID!
       else
         print "Serial number matched remote known serial number."
@@ -287,10 +287,10 @@ function bootSetup()
       ' Updates remote with new IP
       print("Sending IP and MAC address to Access-Kit API...")
       ipReq = createObject("rourltransfer")
-      ipReq.setUrl(previousConfig.syncURL+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
+      ipReq.setUrl(previousConfig.syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
       ipReq.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
       macReq = createObject("rourltransfer")
-      macReq.setUrl(data.syncURL+"/api/mediaplayer/"+id.toStr()+"/macAddress")
+      macReq.setUrl(data.syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
       macReq.asyncPostFromString("password="+password+"&macAddress="+macAddress)
     end if
   else
@@ -310,16 +310,16 @@ function bootSetup()
       sleep(4000)
       textbox.Cls()
     end if
-    accessKitReg.write("serialnumber",uniqueID)
+    accessKitReg.write("serialNumber",uniqueID)
     accessKitReg.write("password",password)
     accessKitReg.flush()
     registry.flush()
 
     requestPlayerID = createObject("rourltransfer")
-    requestPlayerID.setURL(initialConfigData.syncURL+"/api/mediaplayer/serialnumber")
+    requestPlayerID.setURL(initialConfigData.syncUrl+"/api/mediaplayer/serialnumber")
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
-    requestPlayerID.asyncPostFromString("password="+password+"&serialnumber="+uniqueID+"&ipAddress="+currentIP+"&syncURL="+initialConfigData.syncURL+"&macAddress="+macAddress)
+    requestPlayerID.asyncPostFromString("password="+password+"&serialNumber="+uniqueID+"&ipAddress="+currentIP+"&syncUrl="+initialConfigData.syncUrl+"&macAddress="+macAddress)
 
     msg = requestPlayerIDPort.waitmessage(5000)
 
