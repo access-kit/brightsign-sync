@@ -14,21 +14,32 @@ function createSubtitler()
   subtitler.widget = subtitleWidget
   subtitler.activationState = "inactive"
   subtitler.thresholdState = "waitingToCrossNextStart"
-  subtitler.machine = subtitleMachine
+  subtitler.update = subtitleMachine
   subtitler.activate = activateSubtitles
   subitlter.deactivate = deactivateSubtitles
   subtitler.video = m.video ' ref to parent engine's roVideoPlayer
   subtitler.parent = m ' ref to parent engine
   subtitler.currentIndex = 0
+  subtitler.metronome = createObject("roTimer") ' for polling 
+  subtitler.metronomeTrigger = createObject("roMessagePort") ' Port which will receive events to trigger get requests
+  subtitler.metronome.setPort(subtitler.metronomeTrigger)
+  subtitler.metronome.setElapsed(10)
 
-  if m.config.useSubtitles then
-    m.downloadRequest.setUrl(m.apiEndpoint+"/work/"+config.workID.toInt()+"/parsedSrt")
-    m.downloadRequest.asyncGetToString()
-    res = m.downloadResponsePort.waitMessage(3000)
+  ' Set up polling for subtitle toggling
+  subtitler.statePoller = createObject("roUrlTransfer")
+  subtitler.statePoller.setUrl(m.apiEndpoint+"/work")
+  subtitler.statePollerResponsePort = createObject("roMessagePort")
+  subtitler.statePoller.setPort(subtitler.statePollerResponsePort)
+  subtitler.pollingState = "waitingToPoll"
+
+  if m.config.updateSubtitles then
+    m.apiRequest.setUrl(m.apiEndpoint+"/work")
+    m.apiRequest.asyncGetToString()
+    res = m.apiRequest.waitMessage(3000)
     if res <> invalid then
       if res.responseCode = 200 then
-        workData = parseJSON(res.getString())
-        parsedSrt = workData.parsedSrt
+        data = parseJSON(res.getString())
+        parsedSrt = data.work.parsedSrt
         WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
         subtitler.events = parsedSrt
       else 
@@ -65,9 +76,41 @@ function subtitleMachine()
       if m.video.getPlaybackPosition() < m.events[currentIndex].end then
         m.currentIndex = 0
         m.thresholdState = "waitingToCrossNextStart"
+        if m.parent.config.subtitleAutoshutoff then
+          m.deactivate()
+        end if
       end if
     end if
   else if m.activationState = "inactive"
+  end if
+
+  ' subtitle state polling engine
+  if m.parent.config.subtitlePolling then
+    if and m.video.getPlaybackPosition() > 1000 or m.video.getPlaybackPosition < m.parent.duration - 30000 then
+      if m.pollingState = "waitingToPoll"
+        msg = m.metronomeTrigger.getMessage()
+        if msg <> invalid then
+          m.statePoller.asyncGetToString()
+          m.metronome.setElapsed(1)
+        end if
+        m.pollingState = "waitingForResponse"
+      else if m.pollingState = "waitingForResponse"
+        msg = m.statePollerResponsePort.getMessage()
+        if msg <> invalid
+          if msg.responseCode = 200 then
+            data = ParseJSON(msg.getString())
+            if data.onScreenSubtitles then
+              m.activateSubtitles()
+            else
+              m.deactivateSubtitles()
+            end if
+          end if
+        end if
+      end if
+
+    else 
+      ' block api requests during critical sync windows
+    end if
   end if
 end function
 
