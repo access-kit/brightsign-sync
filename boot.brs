@@ -76,6 +76,7 @@ function bootSetup()
       sleep(3000)
       textbox.Cls()
       n.setDHCP()
+      n.setTimeServer("time.brightsignnetwork.com")
       n.apply()
       registry.flush()
       print("Should reboot because dhcp was not configured")
@@ -113,6 +114,7 @@ function bootSetup()
       shouldUpdateConfig = true
     end if
     if shouldUpdateConfig then
+      n.setTimeServer("time.brightsignnetwork.com")
       if initStatus.debugNetworkConfig = "true" then
         result = eval(ReadAsciiFile("networkConfigCodeSnippet.txt"))
         textbox.cls()
