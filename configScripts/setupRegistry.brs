@@ -28,8 +28,3 @@ rebootRequired = nc.SetupDWS({open:"syncSign"})
 ' regSec.Write("ptp_domain", "0")
 ' regSec.Flush()
 
-tf99.SendBlock("Registries written and flushed.  Restarting and loading main file.")
-sleep(4000)
-DeleteFile("autorun.brs")
-MoveFile("runner.brs", "autorun.brs")
-RebootSystem()

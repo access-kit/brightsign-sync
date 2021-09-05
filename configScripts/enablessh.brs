@@ -7,3 +7,4 @@ n.SetLoginPassword("syncSign")
 n.Apply()
 reg.flush()
 print "Password has been set and SSH Enabled."
+movefile("autorun.brs","enablessh.brs")
