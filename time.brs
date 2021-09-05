@@ -1,5 +1,5 @@
 ' Clock Constructor
-function createClock(_syncURL as String, _password as String) as Object
+function createClock(_syncUrl as String, _password as String) as Object
   ' Init object
   timer = createObject("roAssociativeArray")
 
@@ -25,7 +25,7 @@ function createClock(_syncURL as String, _password as String) as Object
 
   ' Give it a sync destination and an initial offset
   timer.request = createObject("roUrlTransfer")
-  timer.apiEndpoint = _syncURL+"/api/sync"
+  timer.apiEndpoint = _syncUrl+"/api/sync"
   timer.responsePort = createObject("roMessagePort")
   timer.request.setPort(timer.responsePort)
   timer.password = _password

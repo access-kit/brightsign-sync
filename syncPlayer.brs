@@ -13,7 +13,7 @@ function createSyncPlayer(_config as Object) as Object
     player.id = 1
   end if
   player.config = _config
-  player.apiEndpoint = player.config.syncURL+"/api/mediaplayer/"+player.id.toStr()
+  player.apiEndpoint = player.config.syncUrl+"/api/mediaplayer/"+player.id.toStr()
   player.nc = createObject("roNetworkConfiguration", 0)
 
   ' Set up the http request and response handlers
@@ -40,18 +40,18 @@ function createSyncPlayer(_config as Object) as Object
     player.apiRequest.asyncPostFromString("password="+player.password+"&syncGroup="+player.config.syncGroup.toStr())
   end if
 
-  if player.config.workID = invalid then
-    player.config.addReplace("workID",1)
+  if player.config.workId = invalid then
+    player.config.addReplace("workId",1)
     WriteAsciiFile("config.json", FormatJSON(player.config))
-    player.apiRequest.setUrl(player.apiEndpoint+"/workID")
-    player.apiRequest.asyncPostFromString("password="+player.password+"&workID="+player.config.workID.toStr())
+    player.apiRequest.setUrl(player.apiEndpoint+"/workId")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&workId="+player.config.workId.toStr())
   end if
 
-  if player.config.videopath = invalid then
-    player.config.addReplace("videopath","auto")
+  if player.config.videoPath = invalid then
+    player.config.addReplace("videoPath","auto")
     WriteAsciiFile("config.json", FormatJSON(player.config))
-    player.apiRequest.setUrl(player.apiEndpoint+"/videopath")
-    player.apiRequest.asyncPostFromString("password="+player.password+"&videopath="+player.config.videopath)
+    player.apiRequest.setUrl(player.apiEndpoint+"/videoPath")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&videoPath="+player.config.videoPath)
   end if
 
   if player.config.updateWeb = invalid then
@@ -75,18 +75,18 @@ function createSyncPlayer(_config as Object) as Object
     player.apiRequest.asyncPostFromString("password="+player.password+"&volume="+player.config.volume.toStr())
   end if
 
-  if player.config.startupleaderdelay = invalid then
-    player.config.startupleaderdelay = 30000
+  if player.config.startupLeaderDelay = invalid then
+    player.config.addReplace("startupLeaderDelay", 30000)
     WriteAsciiFile("config.json", FormatJSON(player.config))
-    player.apiRequest.setUrl(player.apiEndpoint+"/startupleaderdelay")
-    player.apiRequest.asyncPostFromString("password="+player.password+"&startupleaderdelay="+player.config.startupleaderdelay.toStr())
+    player.apiRequest.setUrl(player.apiEndpoint+"/startupLeaderDelay")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&startupLeaderDelay="+player.config.startupLeaderDelay.toStr())
   end if 
 
-  if player.config.looppointleaderdelay = invalid then
-    player.config.looppointleaderdelay = 100
+  if player.config.loopPointLeaderDelay = invalid then
+    player.config.addReplace("loopPointLeaderDelay",100)
     WriteAsciiFile("config.json", FormatJSON(player.config))
-    player.apiRequest.setUrl(player.apiEndpoint+"/looppointleaderdelay")
-    player.apiRequest.asyncPostFromString("password="+player.password+"&looppointleaderdelay="+player.config.looppointleaderdelay.toStr())
+    player.apiRequest.setUrl(player.apiEndpoint+"/loopPointLeaderDelay")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&loopPointLeaderDelay="+player.config.loopPointLeaderDelay.toStr())
   end if 
 
   if player.config.commandPort = invalid then
@@ -103,7 +103,7 @@ function createSyncPlayer(_config as Object) as Object
   
   if player.config.syncMode = "leader" then
     print("Leader is sleeping to let others boot up...")
-    sleep(player.config.startupleaderdelay)
+    sleep(player.config.startupLeaderDelay)
     player.transportState = "starting"
   else if player.config.syncMode = "solo"
     player.transportState = "starting"
@@ -127,7 +127,7 @@ function createSyncPlayer(_config as Object) as Object
   player.updateScripts = updateScripts
   player.updateContent = updateContent
   player.dlContentToFile = dlContentToFile
-  player.changeVideopath = changeVideopath
+  player.changevideoPath = changevideoPath
   player.loadVideoFile = loadVideoFile
 
   ' Video timing fields
@@ -139,7 +139,7 @@ function createSyncPlayer(_config as Object) as Object
   player.videoMode.setMode("auto")
 
   ' Create a clock and sync it
-  player.clock = createClock(player.config.syncURL,player.password)
+  player.clock = createClock(player.config.syncUrl,player.password)
 
 
   ' Video port for events
@@ -177,12 +177,12 @@ function loadVideoFile()
     m.tf99.SendBlock("No valid video files found!")
     sleep(5000)
   else 
-    if m.video.getFilePlayability(m.config.videopath).video <> "playable" then 
+    if m.video.getFilePlayability(m.config.videoPath).video <> "playable" then 
       movList = MatchFiles("/","*.mov")
       playable = False
       for each file in movList 
         if m.video.getFilePlayability(file).video = "playable" then
-          m.updateConfig("videopath",file)
+          m.updateConfig("videoPath",file)
           playable = True
           EXIT FOR
         end if
@@ -192,7 +192,7 @@ function loadVideoFile()
         playable = False
         for each file in mp4List
           if m.video.getFilePlayability(file).video = "playable" then
-            m.updateConfig("videopath",file)
+            m.updateConfig("videoPath",file)
             playable = True
             EXIT FOR
           end if
@@ -213,7 +213,7 @@ function loadVideoFile()
         sleep(5000)
       end if
     end if
-    print "Preload status:", m.video.preloadFile(m.config.videopath)
+    print "Preload status:", m.video.preloadFile(m.config.videoPath)
     m.video.seek(0)
     sleep(40)
     m.duration = m.video.getDuration()-20
@@ -224,7 +224,7 @@ function loadVideoFile()
     updateDurationData = "password="+m.password+"&"
     durationWithDelay = m.duration
     if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
-      durationWithDelay = durationWithDelay + m.config.looppointleaderdelay
+      durationWithDelay = durationWithDelay + m.config.loopPointLeaderDelay
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
     if m.config.updateWeb = "on" then 
@@ -257,7 +257,7 @@ function setupUDP()
 end function
 
 function setupVideoWindow()
-  probeData = m.video.probeFile(m.config.videopath)
+  probeData = m.video.probeFile(m.config.videoPath)
 
   m.width = probeData.videoWidth
   m.height = probeData.videoHeight
@@ -505,20 +505,20 @@ function updateConfig(key, value)
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/"+key)
   m.apiRequest.asyncPostFromString("password="+m.password+"&"+key+"="+value)
-  if key = "videopath" then
+  if key = "videoPath" then
     ' handler for specific key changes
   end if
 end function
 
-function changeVideopath(newpath)
-  print "Received a new videopath"
-  m.config.videopath = newpath
+function changevideoPath(newpath)
+  print "Received a new videoPath"
+  m.config.videoPath = newpath
   json = FormatJSON(m.config)
   print "Saving new configuration..."
   print json
   WriteAsciiFile("config.json", json)
-  m.apiRequest.setUrl(m.apiEndpoint+"/videopath")
-  m.apiRequest.asyncPostFromString("password="+m.password+"&videopath="+newpath)
+  m.apiRequest.setUrl(m.apiEndpoint+"/videoPath")
+  m.apiRequest.asyncPostFromString("password="+m.password+"&videoPath="+newpath)
 end function
 
 function dlContentToFile(url, filepath)
@@ -595,7 +595,7 @@ function transportMachine()
       else if m.config.syncMode = "leader" then
         m.video.pause()
         m.video.seek(0)
-        sleep(m.config.looppointleaderdelay)
+        sleep(m.config.loopPointLeaderDelay)
         m.transportState = "starting"
       else if m.config.syncMode = "follower" then
         m.video.pause()
@@ -691,7 +691,10 @@ function updateContent()
   tf99.SendBlock("Downloading new content.")
   sleep(2000)
   request = createObject("roUrlTransfer")
-  request.setUrl(m.config.videoURL)
-  request.getToFile(m.config.videopath)
+  request.setUrl(m.config.videoUrl)
+  if m.config.videoPath = "auto" then
+    m.changevideoPath("auto.mp4")
+  end if
+  request.getToFile(m.config.videoPath)
   RebootSystem()
 end function

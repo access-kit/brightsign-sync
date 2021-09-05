@@ -1,18 +1,18 @@
 {
     "commandPort":"9500",
     "firmwareURL":"http://samwolk.info/sync/brightsign",
-    "videoURL" : "http://mediaserver.com/video.mp4",
-    "startupleaderdelay":"30000",
-    "looppointleaderdelay": "100",
+    "videoUrl" : "http://mediaserver.com/video.mp4",
+    "startupLeaderDelay":"30000",
+    "loopPointLeaderDelay": "100",
     "password":"syncSign",
     "playerID":"1",
     "id":"1",
     "volume":"15",
     "syncGroup":"1",
-    "workID":"1",
+    "workId":"1",
     "syncMode":"solo",
-    "syncURL":"http://192.168.0.32:3000",
+    "syncUrl":"http://192.168.0.32:3000",
     "updateWeb":"on",
     "updateWork":"false",
-    "videopath":"auto"
+    "videoPath":"auto"
 }
