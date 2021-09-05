@@ -231,6 +231,8 @@ function bootSetup()
 
 
   ' Access-Kit provisioning 
+  deviceCustomization = createObject("roDeviceCustomization")
+  deviceCustomization.writeSplashScreen("access-kit.png")
   deviceInfo = createObject("roDeviceInfo")
   uniqueID = deviceInfo.getDeviceUniqueID()
   currentIP = n.getCurrentConfig().ip4_address
