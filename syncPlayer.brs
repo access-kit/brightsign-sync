@@ -379,16 +379,18 @@ function handleUDP()
       m.window.setY(m.window.getY()+3)
       m.video.setRectangle(m.window)
     else if msg="enlarge" then 
+      _window = ParseJson(ReadAsciiFile("window.json"))
       m.window.setHeight(m.window.getHeight() + 6)
-      m.window.setY(m.window.getY()-3)
-      m.window.setWidth(m.window.getWidth() + 6*m.aspectRatio)
-      m.window.setX(m.window.getX()-3*m.aspectRatio)
+      m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+      m.window.setWidth(m.window.getHeight()*m.aspectRatio)
+      m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
       m.video.setRectangle(m.window)
     else if msg="shrink" then 
+      _window = ParseJson(ReadAsciiFile("window.json"))
       m.window.setHeight(m.window.getHeight() - 6)
-      m.window.setY(m.window.getY()+3)
-      m.window.setWidth(m.window.getWidth() - 6*m.aspectRatio)
-      m.window.setX(m.window.getX()+3*m.aspectRatio)
+      m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+      m.window.setWidth(m.window.getHeight()*m.aspectRatio)
+      m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
       m.video.setRectangle(m.window)
     else if msg="nudgeUp" then 
       m.window.setY(m.window.getY() - 5)
@@ -628,7 +630,7 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Attempting to download new scripts from "+m.config.firmwareURL+"/..."
+  print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -642,37 +644,26 @@ function updateScripts()
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  print "Getting autorun..."
-  autorunslug = m.config.firmwareURL+"/autorun.brs"
-  request.setUrl(autorunslug)
-  request.asyncGetToFile("autorun.brs")
-  resPort.waitMessage(2000)
-  print "Getting boot..."
-  bootslug = m.config.firmwareURL+"/boot.brs"
-  request.setUrl(bootslug)
-  request.asyncGetToFile("boot.brs")
-  resPort.waitMessage(2000)
-  print "Getting sync player library..."
-  syncPlayerslug = m.config.firmwareURL+"/syncPlayer.brs"
-  request.setUrl(syncplayerslug)
-  request.getToFile("syncPlayer.brs")
-  resPort.waitMessage(2000)
-  print "Getting time library..."
-  timeslug = m.config.firmwareURL+"/time.brs"
-  request.setUrl(timeslug)
-  request.getToFile("time.brs")
-  resPort.waitMessage(2000)
-  print "Getting OSC library..."
-  oscslug = m.config.firmwareURL+"/oscBuilder.brs"
-  request.setUrl(oscslug)
-  request.getToFile("oscBuilder.brs")
-  resPort.waitMessage(2000)
-  oscslug = m.config.firmwareURL+"/oscParser.brs"
-  request.setUrl(oscslug)
-  request.getToFile("oscParser.brs")
-  resPort.waitMessage(2000)
-  print "Attempt to update scripts has completed."
-  RestartScript()
+  request.setUrl("https://api.github.com/repos/szvsw/brightSignMediaSync/git/trees/master?recursive=1")
+  request.asyncGetToString()
+  msg = resPort.waitMessage(2000)
+  data = ParseJSON(msg.getString()).tree
+  for each entry in data
+    path = entry.path
+    if path.inStr("/") = -1 then
+      if path.right(3) = "brs" then
+        print("Downloading "+path+"...")
+        request.setUrl(m.config.firmwareUrl + "/"+path)
+        request.asyncGetToFile(path)
+        resPort.waitMessage(3000)
+
+      end if
+    end if
+  end for
+  tf99.cls()
+  tf99.sendBlock("Done downloading scripts... will now reboot.")
+  sleep(3000)
+  RebootSystem()
 end function
 
 
