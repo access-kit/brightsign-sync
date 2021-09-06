@@ -1,6 +1,6 @@
 {
     "commandPort":"9500",
-    "firmwareURL":"http://samwolk.info/sync/brightsign",
+    "firmwareUrl":"http://samwolk.info/sync/brightsign",
     "videoUrl" : "http://mediaserver.com/video.mp4",
     "startupLeaderDelay":"30000",
     "loopPointLeaderDelay": "100",
