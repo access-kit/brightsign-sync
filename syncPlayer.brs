@@ -25,6 +25,18 @@ function createSyncPlayer(_config as Object) as Object
   player.downloadResponsePort = createObject("roMessagePort")
   player.downloadRequest.setPort(player.downloadResponsePort)
 
+  player.configRequest = createObject("roUrlTransfer")
+  player.configRequest.setUrl(player.apiEndpoint)
+  player.configResponsePort = createObject("roMessagePort")
+  player.configRequest.setPort(player.configResponsePort)
+  player.configMetronome = createObject("roTimer")
+  player.configMetronome.setElapsed(10,0)
+  player.configMetronomeTriggerPort = createObject("roMessagePort")
+  player.configMetronome.setPort(player.configMetronomeTriggerPort)
+  player.configPollingState = "waitingToPoll"
+  player.configMetronome.start()
+  player.configPoller = configPoller
+
   ' Ensure that necessary config values are present
   if player.config.syncMode = invalid then
     player.config.addReplace("syncMode","solo")
@@ -126,7 +138,6 @@ function createSyncPlayer(_config as Object) as Object
   player.updateConfig = updateConfig
   player.updateScripts = updateScripts
   player.updateContent = updateContent
-  player.dlContentToFile = dlContentToFile
   player.changevideoPath = changevideoPath
   player.loadVideoFile = loadVideoFile
 
@@ -523,22 +534,6 @@ function changevideoPath(newpath)
   m.apiRequest.asyncPostFromString("password="+m.password+"&videoPath="+newpath)
 end function
 
-function dlContentToFile(url, filepath)
-  m.video.stop()
-  m.downloadAlert = createObject("roTextField", 100,100,100,3,0)
-  print #m.downloadAlert, "Attempting to download new content from ", url
-  print "Command to get new content issued.  Stopping video and attempting to download new content from ", url
-  m.downloadRequest.setUrl(url)
-  resCode = m.downloadRequest.getToFile(filepath)
-  m.downloadAlert.cls()
-  if resCode = 200 then
-    print "success!"
-    print #m.downloadAlert, "Successfully downloaded new content."
-  else
-    print "request failed, response code: ", resCode
-    print #m.downloadAlert, "Download attempt failed, response code: ", resCode
-  end if
-end function
 
 function syncMachine()
   if m.clock.state = "idle" then
@@ -629,6 +624,7 @@ function runMachines()
     m.sync()
     m.firmwareCMS()
     m.contentCMS()
+    m.configPoller()
   end while
 end function
 
@@ -670,6 +666,7 @@ function updateScripts()
   RebootSystem()
 end function
 
+
 function updateContent()
   m.video.stop()
   meta99 = CreateObject("roAssociativeArray")
@@ -686,6 +683,53 @@ function updateContent()
   if m.config.videoPath = "auto" then
     m.changevideoPath("auto.mp4")
   end if
-  request.getToFile(m.config.videoPath)
-  RebootSystem()
+  resCode = request.getToFile(m.config.videoPath)
+  if resCode = 200 then
+    tf99.cls()
+    tf99.sendBlock("Finished Downloading Content... will now reboot.")
+    sleep(3000)
+    m.apiRequest.setUrl(m.apiEndpoint+"/downloadNewContent")
+    postString = "password="+m.password+"&downloadNewContent=false"
+    m.apiRequest.asyncPostFromString(postString)
+
+    RebootSystem()
+  else 
+    tf99.cls()
+    tf99.sendBlock("Error downlaoding content... response code: "+resCode.toStr())
+    sleep(15000)
+  end if
+end function
+
+function configPoller()
+  ' subtitle state polling engine
+  if m.config.pollForConfigChanges then
+    if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
+      if m.configPollingState = "waitingToPoll"
+        msg = m.configMetronomeTriggerPort.getMessage()
+        if msg <> invalid then
+          m.configRequest.asyncGetToString()
+          m.configMetronome.setElapsed(1,0)
+          m.configMetronome.start()
+          m.configPollingState = "waitingForResponse"
+        end if
+      else if m.configPollingState = "waitingForResponse"
+        msg = m.configResponsePort.getMessage()
+        if msg <> invalid
+          if msg.getResponseCode() = 200 then
+            data = ParseJSON(msg.getString())
+            m.config = data
+            m.video.setVolume(m.config.volume)
+            WriteAsciiFile("config.json",FormatJSON(data))
+            if m.config.downloadNewContent then
+              m.updateContent() ' get new media
+            end if
+          end if
+          m.configPollingState="waitingToPoll"
+        end if
+      end if
+
+    else 
+      ' block api requests during critical sync windows
+    end if
+  end if
 end function
