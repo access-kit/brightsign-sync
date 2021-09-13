@@ -147,7 +147,17 @@ function createSyncPlayer(_config as Object) as Object
 
   ' Screen resolution settings
   player.videoMode = CreateObject("roVideoMode")
-  player.videoMode.setMode("auto")
+  if ParseJSON(readasciifile("video.json")) <> invalid then 
+    videoSettings = ParseJSON(ReadAsciiFile("video.json"))
+    if player.videoMode.getMode() <> videoSettings.mode then
+      player.videoMode.setMode(videoSettings.mode)
+      RebootSystem()
+    else 
+      player.videoMode.setMode(videoSettings.mode)
+    end if
+  else 
+    player.videoMode.setMode("auto")
+  end if
 
   ' Create a clock and sync it
   player.clock = createClock(player.config.syncUrl,player.password)
