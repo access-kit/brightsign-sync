@@ -173,9 +173,13 @@ function createSyncPlayer(_config as Object) as Object
   player.video.setVolume(player.config.volume) ' see config stuff in master from zachpoff
   if ParseJSON(readasciifile("audio.json")) <> invalid then 
     audioSettings = ParseJSON(ReadAsciiFile("audio.json"))
-    audioOut = CreateObject("roAudioOutput", audioSettings.mode)
-  
-    player.video.SetPcmAudioOutputs(audioOut)
+    player.audio = CreateObject("roAudioOutput", audioSettings.output)
+     
+    if audioSettings.mode = "compressed" then ' use mode: compressed and output: spdif for optical ac3 
+      player.video.setCompressedAudioOutputs(player.audio)
+    else
+      player.video.SetPcmAudioOutputs(player.audio)
+    end if
   else 
   end if
 
