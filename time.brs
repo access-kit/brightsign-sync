@@ -349,6 +349,15 @@ function synchronizeTimestamp(timestamp as String) as String
     finalS = finalS + quotient
     finalMS = remainder
   end if
+  if msSum < 0  and msSum > -1000 then
+    finalS = finalS - 1 
+    finalMS = 1000 - msSum
+  else if msSum <= -1000 then
+    quotient = abs(int(msSum/1000))
+    remainder = finalMS + quotient*1000
+    finalS = finalS - quotient
+    finalMS = 1000 - remainder
+  end if
   seconds = box(finalS.toStr())
   milliseconds = box(finalMS.toStr())
   ' Pad ms with zeros
