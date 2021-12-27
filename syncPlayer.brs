@@ -171,6 +171,14 @@ function createSyncPlayer(_config as Object) as Object
   player.video.setPort(player.videoPort)
   player.video.setViewMode(0) 
   player.video.setVolume(player.config.volume) ' see config stuff in master from zachpoff
+  if ParseJSON(readasciifile("audio.json")) <> invalid then 
+    audioSettings = ParseJSON(ReadAsciiFile("audio.json"))
+    audioOut = CreateObject("roAudioOutput", audioSettings.mode)
+  
+    player.video.SetPcmAudioOutputs(audioOut)
+  else 
+  end if
+
 
   ' Load the currently selected video and report its duration
   player.loadVideoFile()
@@ -712,7 +720,7 @@ end function
 
 function configPoller()
   ' subtitle state polling engine
-  if m.config.pollForConfigChanges then
+  if m.config.pollForConfigChanges and m.provisioned = "true" then
     if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
       if m.configPollingState = "waitingToPoll"
         msg = m.configMetronomeTriggerPort.getMessage()
