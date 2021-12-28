@@ -7,6 +7,7 @@ function createSyncPlayer(_config as Object) as Object
   player.accessKitReg = createObject("roRegistrySection","accessKit")
   player.password = player.accessKitReg.read("password")
   player.provisioned = player.accessKitReg.read("provisioned")
+  player.changeRegistration = changeRegistration
   if player.provisioned = "true" then
     player.id = player.accessKitReg.read("id").toInt()
   else 
@@ -724,34 +725,50 @@ end function
 
 function configPoller()
   ' subtitle state polling engine
-  if m.config.pollForConfigChanges and m.provisioned = "true" then
-    if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
-      if m.configPollingState = "waitingToPoll"
-        msg = m.configMetronomeTriggerPort.getMessage()
-        if msg <> invalid then
-          m.configRequest.asyncGetToString()
-          m.configMetronome.setElapsed(1,0)
-          m.configMetronome.start()
-          m.configPollingState = "waitingForResponse"
-        end if
-      else if m.configPollingState = "waitingForResponse"
-        msg = m.configResponsePort.getMessage()
-        if msg <> invalid
-          if msg.getResponseCode() = 200 then
-            data = ParseJSON(msg.getString())
-            m.config = data
-            m.video.setVolume(m.config.volume)
-            WriteAsciiFile("config.json",FormatJSON(data))
-            if m.config.downloadNewContent then
-              m.updateContent() ' get new media
-            end if
+  ' TODO: line below bugs out when not provisioned
+  if m.provisioned = "true" then
+    if m.config.pollForConfigChanges and m.provisioned = "true" then
+      if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
+        if m.configPollingState = "waitingToPoll"
+          msg = m.configMetronomeTriggerPort.getMessage()
+          if msg <> invalid then
+            m.configRequest.asyncGetToString()
+            m.configMetronome.setElapsed(1,0)
+            m.configMetronome.start()
+            m.configPollingState = "waitingForResponse"
           end if
-          m.configPollingState="waitingToPoll"
+        else if m.configPollingState = "waitingForResponse"
+          msg = m.configResponsePort.getMessage()
+          if msg <> invalid
+            if msg.getResponseCode() = 200 then
+              data = ParseJSON(msg.getString())
+              m.config = data
+              m.video.setVolume(m.config.volume)
+              WriteAsciiFile("config.json",FormatJSON(data))
+              if m.config.downloadNewContent then
+                m.updateContent() ' get new media
+              end if
+            end if
+            m.configPollingState="waitingToPoll"
+          end if
         end if
-      end if
 
-    else 
-      ' block api requests during critical sync windows
+      else 
+        ' block api requests during critical sync windows
+      end if
     end if
   end if
+end function
+
+function changeRegistration(newSyncUrl,newPassword)
+  m.accessKitReg.delete("provisioned")
+  m.accessKitReg.delete("id")
+  m.accessKitReg.delete("syncUrl")
+  m.accessKitReg.delete("password")
+  m.accessKitReg.flush()
+  newConfig = createObject("roAssociativeArray")
+  newConfig.addReplace("syncUrl",newSyncUrl)
+  newConfig.addReplace("password",newPassword)
+  WriteAsciiFile("config.json",FormatJSON(newConfig))
+
 end function
