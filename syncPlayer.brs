@@ -191,7 +191,6 @@ function createSyncPlayer(_config as Object) as Object
 
   ' UDP Setup
   player.setupUDP()
-  player.postToLog("syncPlayer initialization complete.")
   
   return player
 end function
