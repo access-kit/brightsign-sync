@@ -258,6 +258,7 @@ function bootSetup()
         if configPassword <> invalid then
           password = configPassword
           accessKitReg.write("password", password)
+          accessKitReg.flush()
         else
           print("No password in the access kit registry and no sync url in the config file.")
           textbox.sendBlock("No password was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
@@ -281,6 +282,7 @@ function bootSetup()
         if configSyncUrl <> invalid then
           syncUrl = configSyncUrl
           accessKitReg.write("syncUrl", syncUrl)
+          accessKitReg.flush()
         else
           print("No sync url in the access kit registry and no sync url in the config file.")
           textbox.sendBlock("No Sync URL was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
@@ -425,7 +427,6 @@ function bootSetup()
         sleep(4000)
         textbox.cls()
         print("failed to connect.")
-        accessKitReg.write("provisioningFailure","false")
         accessKitReg.flush()
         registry.flush()
       end if
