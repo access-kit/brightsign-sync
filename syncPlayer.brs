@@ -4,6 +4,7 @@ LIBRARY "oscParser.brs"
 
 function createSyncPlayer(_config as Object) as Object
   player = createObject("roAssociativeArray")
+  player.quit = quit
   player.accessKitReg = createObject("roRegistrySection","accessKit")
   player.password = player.accessKitReg.read("password")
   player.provisioned = player.accessKitReg.read("provisioned")
@@ -840,4 +841,8 @@ function injectionPoller()
       end if
     end if
   end if
+end function
+
+function quit()
+  END
 end function
