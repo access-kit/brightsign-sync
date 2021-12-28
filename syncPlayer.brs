@@ -39,6 +39,19 @@ function createSyncPlayer(_config as Object) as Object
   player.configMetronome.start()
   player.configPoller = configPoller
 
+  player.injectionRequest = createObject("roUrlTransfer")
+  player.injectionRequest.setUrl(player.apiEndpoint+"/inject")
+  player.injectionResponsePort = createObject("roMessagePort")
+  player.injectionRequest.setPort(player.injectionResponsePort)
+  player.injectionMetronome = createObject("roTimer")
+  player.injectionMetronome.setElapsed(10,0)
+  player.injectionMetronomeTriggerPort = createObject("roMessagePort")
+  player.injectionMetronome.setPort(player.injectionMetronomeTriggerPort)
+  player.injectionPollingState = "waitingToPoll"
+  player.injectionMetronome.start()
+  player.injectionPoller = injectionPoller
+  player.pollForCodeInjection = false 'TODO: add this to config
+
   ' Ensure that necessary config values are present
   if player.config.syncMode = invalid then
     player.config.addReplace("syncMode","solo")
@@ -648,6 +661,7 @@ function runMachines()
     m.firmwareCMS()
     m.contentCMS()
     m.configPoller()
+    m.injectionPoller()
   end while
 end function
 
@@ -778,4 +792,52 @@ function postToLog(message)
   m.apiRequest.setUrl(postUrl)
   m.apiRequest.asyncPostFromString("password="+m.password+"&message="+m.apiRequest.escape(message))
   
+end function
+
+function injectionPoller()
+  ' subtitle state polling engine
+  ' TODO: line below bugs out when not provisioned
+  if m.provisioned = "true" then
+    if m.pollForCodeInjection and m.provisioned = "true" then
+      if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
+        if m.injectionPollingState = "waitingToPoll"
+          msg = m.injectionMetronomeTriggerPort.getMessage()
+          if msg <> invalid then
+            m.injectionRequest.asyncGetToString()
+            m.injectionMetronome.setElapsed(1,0)
+            m.injectionMetronome.start()
+            m.injectionPollingState = "waitingForResponse"
+          end if
+        else if m.injectionPollingState = "waitingForResponse"
+          msg = m.injectionResponsePort.getMessage()
+          if msg <> invalid
+            if msg.getResponseCode() = 200 then
+              codeToInject = ParseJSON(msg.getString())
+              for each line in codeToInject
+                print "Code to inject", line.code
+                results = eval(line.code)
+                sleep(500)
+                if type(results) = "roList" then
+                  for each result in results
+                    m.postToLog("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
+                    sleep(500)
+                    print("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
+                  end for
+
+                else
+                  m.postToLog("Executed code with status: "+results.toStr())
+                  print("Executed code with status code: " + results.toStr())
+                end if
+                sleep(500)
+              end for
+            end if
+            m.injectionPollingState="waitingToPoll"
+          end if
+        end if
+
+      else 
+        ' block api requests during critical sync windows
+      end if
+    end if
+  end if
 end function
