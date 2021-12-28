@@ -249,7 +249,51 @@ function bootSetup()
     password = accessKitReg.read("password")
     syncUrl = accessKitReg.read("syncUrl")
     print "Player already provisioned with id "+id.toStr()+"."
-    ' previousConfig = ParseJSON(ReadAsciiFile("config.json"))
+    if accessKitReg.exists("password") <> true then
+      print("No password in registry.")
+      localConfig= ParseJSON(ReadAsciiFile("config.json"))
+      if localConfig <> invalid then 
+        configPassword = localConfig.password
+        print "Password found in local file."
+        if configPassword <> invalid then
+          password = configPassword
+          accessKitReg.write("password", password)
+        else
+          print("No password in the access kit registry and no sync url in the config file.")
+          textbox.sendBlock("No password was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+          sleep(3000)
+
+        end if
+      else 
+        print("No password in the access kit registry and no sync url in the config file.")
+        textbox.sendBlock("No password was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+          sleep(3000)
+      end if
+    else
+      print "Password found in registry."
+    end if
+    if accessKitReg.exists("syncUrl") <> true then
+      print("No sync url in registry.")
+      localConfig= ParseJSON(ReadAsciiFile("config.json"))
+      if localConfig <> invalid then 
+        configSyncUrl = localConfig.syncUrl
+        print "syncUrl found in local file: ", configSyncUrl
+        if configSyncUrl <> invalid then
+          syncUrl = configSyncUrl
+          accessKitReg.write("syncUrl", syncUrl)
+        else
+          print("No sync url in the access kit registry and no sync url in the config file.")
+          textbox.sendBlock("No Sync URL was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+          sleep(3000)
+        end if
+      else 
+        print("No sync url in the access kit registry and no sync url in the config file.")
+        textbox.sendBlock("No Sync URL was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+        sleep(3000)
+      end if
+    else
+      print "syncUrl found in registry: ", syncUrl
+    end if
     print "Checking for new configuration..."
     ' check for new config data
     configRequest = createObject("rourltransfer")
