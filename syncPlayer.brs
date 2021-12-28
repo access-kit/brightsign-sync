@@ -21,6 +21,7 @@ function createSyncPlayer(_config as Object) as Object
   player.apiRequest = createObject("roUrlTransfer")
   player.apiResponsePort = createObject("roMessagePort")
   player.apiRequest.setPort(player.apiResponsePort )
+  player.postToLog = postToLog
 
   player.downloadRequest = createObject("roUrlTransfer")
   player.downloadResponsePort = createObject("roMessagePort")
@@ -190,7 +191,7 @@ function createSyncPlayer(_config as Object) as Object
 
   ' UDP Setup
   player.setupUDP()
-
+  player.postToLog("syncPlayer initialization complete.")
   
   return player
 end function
@@ -771,4 +772,11 @@ function changeRegistration(newSyncUrl,newPassword)
   newConfig.addReplace("password",newPassword)
   WriteAsciiFile("config.json",FormatJSON(newConfig))
 
+end function
+
+function postToLog(message)
+  postUrl = m.apiEndpoint+"/log"
+  m.apiRequest.setUrl(postUrl)
+  m.apiRequest.asyncPostFromString("password="+m.password+"&message="+m.apiRequest.escape(message))
+  
 end function
