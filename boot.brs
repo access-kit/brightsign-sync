@@ -247,12 +247,13 @@ function bootSetup()
   if accessKitReg.exists("id") then
     id = accessKitReg.read("id").toInt()
     password = accessKitReg.read("password")
+    syncUrl = accessKitReg.read("syncUrl")
     print "Player already provisioned with id "+id.toStr()+"."
-    previousConfig = ParseJSON(ReadAsciiFile("config.json"))
+    ' previousConfig = ParseJSON(ReadAsciiFile("config.json"))
     print "Checking for new configuration..."
     ' check for new config data
     configRequest = createObject("rourltransfer")
-    configRequest.setUrl(previousConfig.syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
+    configRequest.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
@@ -291,7 +292,7 @@ function bootSetup()
       ' Updates remote with new IP
       print("Sending IP and MAC address to Access-Kit API...")
       ipReq = createObject("rourltransfer")
-      ipReq.setUrl(previousConfig.syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
+      ipReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
       ipReq.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
       macReq = createObject("rourltransfer")
       macReq.setUrl(data.syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
@@ -307,23 +308,32 @@ function bootSetup()
 
     initialConfigData = ParseJSON(ReadAsciiFile("config.json"))
     password = initialConfigData.password
+    syncUrl = initialConfigData.syncUrl
     if password = invalid then
       password = "null"
       print("No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
-      textbox.SendBlock(" No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      textbox.SendBlock("No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      sleep(4000)
+      textbox.Cls()
+    end if
+    if syncUrl = invalid then
+      syncUrl = "null"
+      print("No syncurl was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      textbox.SendBlock("No Sync URL was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
       sleep(4000)
       textbox.Cls()
     end if
     accessKitReg.write("serialNumber",uniqueID)
     accessKitReg.write("password",password)
+    accessKitReg.write("syncUrl",syncUrl)
     accessKitReg.flush()
     registry.flush()
 
     requestPlayerID = createObject("rourltransfer")
-    requestPlayerID.setURL(initialConfigData.syncUrl+"/api/mediaplayer/serialnumber")
+    requestPlayerID.setURL(syncUrl+"/api/mediaplayer/serialnumber")
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
-    requestPlayerID.asyncPostFromString("password="+password+"&serialNumber="+uniqueID+"&ipAddress="+currentIP+"&syncUrl="+initialConfigData.syncUrl+"&macAddress="+macAddress)
+    requestPlayerID.asyncPostFromString("password="+password+"&serialNumber="+uniqueID+"&ipAddress="+currentIP+"&syncUrl="+syncUrl+"&macAddress="+macAddress)
 
     msg = requestPlayerIDPort.waitmessage(5000)
 
