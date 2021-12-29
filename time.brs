@@ -371,6 +371,8 @@ function synchronizeTimestamp(timestamp as String) as String
     finalMS = int(finalMS)
     'print "final",finals;finalms
   end if
+  print finalS
+  print finalMS
   seconds = box(finalS.toStr())
   milliseconds = box(finalMS.toStr())
   ' Pad ms with zeros
