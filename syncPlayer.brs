@@ -51,7 +51,6 @@ function createSyncPlayer(_config as Object) as Object
   player.injectionPollingState = "waitingToPoll"
   player.injectionMetronome.start()
   player.injectionPoller = injectionPoller
-  player.pollForCodeInjection = false 'TODO: add this to config
 
   ' Ensure that necessary config values are present
   if player.config.syncMode = invalid then
@@ -799,7 +798,7 @@ function injectionPoller()
   ' subtitle state polling engine
   ' TODO: line below bugs out when not provisioned
   if m.provisioned = "true" then
-    if m.pollForCodeInjection and m.provisioned = "true" then
+    if m.config.pollForCodeInjection and m.provisioned = "true" then
       if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
         if m.injectionPollingState = "waitingToPoll"
           msg = m.injectionMetronomeTriggerPort.getMessage()
