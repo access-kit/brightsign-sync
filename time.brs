@@ -349,13 +349,13 @@ function synchronizeTimestamp(timestamp as String) as String
     finalS = inputS + quotient
     finalMS = remainder
   else if msSum < 0  and msSum > -1000 then
-    print("received a small negative offset")
-    print "Timestamp", timestamp
-    print "Offset", m.serverTimeOffset
-    print "MS Sum", msSum
+    'print("received a small negative offset")
+    'print "Timestamp", timestamp
+    'print "Offset", m.serverTimeOffset
+    'print "MS Sum", msSum
     finalS = inputS - 1 
     finalMS = 1000 + msSum
-    print "final",finals;finalMS
+    'print "final",finals;finalMS
   else if msSum <= -1000 then
     'print("received a large negative offset")
     'print "Timestamp", timestamp
