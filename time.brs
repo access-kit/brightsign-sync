@@ -333,6 +333,7 @@ end function
 
 function synchronizeTimestamp(timestamp as String) as String
   ' TODO: use a {int,int} to represent timestamp
+  m.serverTimeOffset = -934
   input = box(timestamp)
   ' Separate ms and s
   inputS = input.left(10).toInt()
