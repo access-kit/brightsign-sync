@@ -338,41 +338,42 @@ function synchronizeTimestamp(timestamp as String) as String
   inputS = input.left(10).toInt()
   inputMS = input.right(3).toInt()
   ' Add server time offset to ms
+  print "Timestamp", timestamp
+  print "Offset", m.serverTimeOffset
   msSum = inputMS+m.serverTimeOffset
+  print "MS Sum", msSum
   ' Set up placeholders for final values
   finalS = 0
   finalMS = 0
   ' Carry digits if ms add up to more than 1s
   if msSum >= 1000 then
+    print "positive carrying"
     quotient = int(msSum/1000)
+    print "Quotient", quotient
     remainder = int(msSum mod 1000)
+    print "Remainder", remainder
     finalS = inputS + quotient
     finalMS = remainder
   else if msSum < 0  and msSum > -1000 then
-    'print("received a small negative offset")
-    'print "Timestamp", timestamp
-    'print "Offset", m.serverTimeOffset
-    'print "MS Sum", msSum
+    print("small negative carrying")
     finalS = inputS - 1 
     finalMS = 1000 + msSum
-    'print "final",finals;finalMS
   else if msSum <= -1000 then
-    'print("received a large negative offset")
-    'print "Timestamp", timestamp
-    'print "Offset", m.serverTimeOffset
-    'print "MS Sum", msSum
+    print("large negative carrying")
     quotient = abs(int(msSum/1000))
-    'print "Quotient", quotient
+    print "Quotient", quotient
     remainder = msSum+ quotient*1000
-    'print "Remainder", remainder
+    print "Remainder", remainder
     finalS =inputS - quotient
     finalMS = remainder
     finalS = int(finalS)
     finalMS = int(finalMS)
-    'print "final",finals;finalms
+  else 
+    print("no carrying")
+    finalS = inputS
+    finalMS = msSum
   end if
-  print finalS
-  print finalMS
+  print "final",finals;finalms
   seconds = box(finalS.toStr())
   milliseconds = box(finalMS.toStr())
   ' Pad ms with zeros
