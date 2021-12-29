@@ -333,6 +333,7 @@ end function
 
 function synchronizeTimestamp(timestamp as String) as String
   ' TODO: use a {int,int} to represent timestamp
+  m.serverTimeOffset = -934
   input = box(timestamp)
   ' Separate ms and s
   inputS = input.left(10).toInt()
@@ -340,23 +341,36 @@ function synchronizeTimestamp(timestamp as String) as String
   ' Add server time offset to ms
   msSum = inputMS+m.serverTimeOffset
   ' Set up placeholders for final values
-  finalS = inputS
-  finalMS = msSum
+  finalS = 0
+  finalMS = 0
   ' Carry digits if ms add up to more than 1s
   if msSum >= 1000 then
     quotient = int(msSum/1000)
     remainder = int(msSum mod 1000)
-    finalS = finalS + quotient
+    finalS = inputS + quotient
     finalMS = remainder
-  end if
-  if msSum < 0  and msSum > -1000 then
-    finalS = finalS - 1 
-    finalMS = 1000 - msSum
+  else if msSum < 0  and msSum > -1000 then
+    print("received a small negative offset")
+    print "Timestamp", timestamp
+    print "Offset", m.serverTimeOffset
+    print "MS Sum", msSum
+    finalS = inputS - 1 
+    finalMS = 1000 + msSum
+    print "final",finals;finalMS
   else if msSum <= -1000 then
+    'print("received a large negative offset")
+    'print "Timestamp", timestamp
+    'print "Offset", m.serverTimeOffset
+    'print "MS Sum", msSum
     quotient = abs(int(msSum/1000))
-    remainder = finalMS + quotient*1000
-    finalS = finalS - quotient
-    finalMS = 1000 - remainder
+    'print "Quotient", quotient
+    remainder = msSum+ quotient*1000
+    'print "Remainder", remainder
+    finalS =inputS - quotient
+    finalMS = remainder
+    finalS = int(finalS)
+    finalMS = int(finalMS)
+    'print "final",finals;finalms
   end if
   seconds = box(finalS.toStr())
   milliseconds = box(finalMS.toStr())
