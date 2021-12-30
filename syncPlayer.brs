@@ -796,6 +796,8 @@ function changeRegistration(newSyncUrl,newPassword)
   newConfig.addReplace("syncUrl",newSyncUrl)
   newConfig.addReplace("password",newPassword)
   WriteAsciiFile("config.json",FormatJSON(newConfig))
+  sleep(1000)
+  RebootSystem()
 
 end function
 
