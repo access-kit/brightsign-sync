@@ -739,6 +739,7 @@ function updateContent()
     m.apiRequest.setUrl(m.apiEndpoint+"/downloadNewContent")
     postString = "password="+m.password+"&downloadNewContent=false"
     m.apiRequest.asyncPostFromString(postString)
+    sleep(2000)
 
     RebootSystem()
   else 
