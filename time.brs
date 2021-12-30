@@ -341,7 +341,7 @@ function synchronizeTimestamp(timestamp as String) as String
   print "Timestamp", timestamp
   print "Offset", m.serverTimeOffset
   msSum = inputMS+m.serverTimeOffset
-  print "MS Sum", msSum
+  print "MS Sum", msSum.toStr()
   ' Set up placeholders for final values
   finalS = 0
   finalMS = 0
