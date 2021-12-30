@@ -122,6 +122,16 @@ function createSyncPlayer(_config as Object) as Object
     player.apiRequest.setUrl(player.apiEndpoint+"/commandPort")
     player.apiRequest.asyncPostFromString("password="+player.password+"&commandPort="+player.config.commandPort.toStr())
   end if 
+
+  if player.config.pollForCodeInjection = invalid then
+    player.config.pollForCodeInjection = false
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+  end if 
+
+  if player.config.pollForConfigChanges = invalid then
+    player.config.pollForConfigChanges = false
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+  end if 
   
   
 
@@ -207,6 +217,7 @@ function createSyncPlayer(_config as Object) as Object
   
   return player
 end function
+
 
 function loadVideoFile()
   print "Preloading video..."
