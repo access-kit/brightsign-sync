@@ -8,7 +8,10 @@ function createSyncPlayer(_config as Object) as Object
   player.accessKitReg = createObject("roRegistrySection","accessKit")
   player.password = player.accessKitReg.read("password")
   player.provisioned = player.accessKitReg.read("provisioned")
+
+  player.handleCommand = handleCommand
   player.changeRegistration = changeRegistration
+
   if player.provisioned = "true" then
     player.id = player.accessKitReg.read("id").toInt()
   else 
@@ -369,117 +372,187 @@ function submitTimestamp() ' as String
   ' end if
 end function
 
+function handleCommand(msg)
+  if msg="pause" then
+    m.video.pause()
+    return {status: 0, message: "paused"}
+  else if msg="start" then
+    m.transportState = "starting"
+    return {status: 0, message: "starting"}
+  else if msg="play" then
+    m.video.resume()
+    return {status: 0, message: "resumed"}
+  else if msg = "playReset" then 
+    m.clock.markStart()
+    m.video.seek(0)
+    seekTime = m.clock.markElapsed()
+    m.video.play()
+    x = m.clock.markElapsed()
+    print "New playback position: (ms)", m.video.getPlaybackPosition()
+    print "seeking to beginning (ms):", seekTime
+    print "seeking to beginning then playing took (ms):", x-seekTime
+    m.transportState = "idle"
+    return {status: 0, message: "resumed"}
+  else if msg = "printLoc" then 
+    print "Playback Position: (ms)", m.video.getPlaybackPosition()
+    return {status: 0, message: "Playback position (ms)"+m.video.getPlaybackPosition().toStr()}
+  else if msg.getString().tokenize(" ")[0]="seek" then 
+    m.video.pause()
+    seekPositionMS = msg.getString().tokenize(" ")[1]
+    m.video.seek(seekPositionMS.toInt())
+    return {status: 0, message: "Jumped as close to "+seekPositionMS+"ms as possible."}
+  else if msg.getString().tokenize(" ")[0]="seekSec" then 
+    m.video.pause()
+    seekPositionS = msg.getString().tokenize(" ")[1]
+    m.video.seek(int(seekPositionS.toFloat()*1000))
+    print("just sought.")
+    return {status: 0, message: "Jumped as close to "+seekPositionS+"s as possible."}
+  else if msg="ff" then
+    m.video.setPlaybackSpeed(2)
+    return {status: 0, message: "fast-forwarding"}
+  else if msg="fff" then
+    m.video.setPlaybackSpeed(8)
+    return {status: 0, message: "fast-forwarding"}
+  else if msg="rr" then
+    m.video.setPlaybackSpeed(-2)
+    return {status: 0, message: "rewinding"}
+  else if msg="rrr" then
+    m.video.setPlaybackSpeed(-8)
+    return {status: 0, message: "rewinding"}
+  else if msg="defaultspeed" then
+    m.video.setPlaybackSpeed(1)
+    return {status: 0, message: "setting normal playback speed"}
+  else if msg="stretchX" then 
+    m.window.setWidth(m.window.getWidth() + 6)
+    m.window.setX(m.window.getX()-3)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "stretched video to "+m.window.getWidth().toStr()+"px wide"}
+  else if msg="compressX" then 
+    m.window.setWidth(m.window.getWidth() - 6)
+    m.window.setX(m.window.getX()+3)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "compressed video to "+m.window.getWidth().toStr()+"px wide"}
+  else if msg="stretchY" then 
+    m.window.setHeight(m.window.getHeight() + 6)
+    m.window.setY(m.window.getY()-3)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "stretched video to "+m.window.getHeight().toStr()+"px tall"}
+  else if msg="compressY" then 
+    m.window.setHeight(m.window.getHeight() - 6)
+    m.window.setY(m.window.getY()+3)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "compressed video to "+m.window.getHeight().toStr()+"px tall"}
+  else if msg="enlarge" then 
+    _window = ParseJson(ReadAsciiFile("window.json"))
+    m.window.setHeight(m.window.getHeight() + 6)
+    m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+    m.window.setWidth(m.window.getHeight()*m.aspectRatio)
+    m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "stretched video to "+m.window.getWidth().toStr()+"x"+m.window.getHeight().toStr()}
+  else if msg="shrink" then 
+    _window = ParseJson(ReadAsciiFile("window.json"))
+    m.window.setHeight(m.window.getHeight() - 6)
+    m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+    m.window.setWidth(m.window.getHeight()*m.aspectRatio)
+    m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "shrunk video to "+m.window.getWidth().toStr()+"x"+m.window.getHeight().toStr()}
+  else if msg="nudgeUp" then 
+    m.window.setY(m.window.getY() - 5)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "moved video up"}
+  else if msg="nudgeDown" then 
+    m.window.setY(m.window.getY() + 5)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "moved video down"}
+  else if msg="nudgeLeft" then 
+    m.window.setX(m.window.getX() - 5)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "moved video left"}
+  else if msg="nudgeRight" then 
+    m.window.setX(m.window.getX() + 5)
+    m.video.setRectangle(m.window)
+    return {status: 0, message: "moved video right"}
+  else if msg="rot180" then
+    m.transform = "rot180"
+    return {status: 0, message: "set rotation transformation (CURRENTLY NOT SUPPORTED)"}
+  else if msg="saveWindow" then 
+    _window = createObject("roAssociativeArray")
+    _window.x = m.window.getX()
+    _window.y = m.window.getY()
+    _window.w = m.window.getWidth()
+    _window.h = m.window.getHeight()
+    _window.transform = m.transform
+    json = FormatJSON(_window)
+    print "Writing new window configuration to disk: ", json
+    WriteAsciiFile("window.json", json)
+    return {status: 0, message: "Saved picture configuration to disk: "+json}
+  else if msg="restoreWindow" then 
+    DeleteFile("window.json")
+    m.setupVideoWindow()
+    _window = createObject("roAssociativeArray")
+    _window.x = m.window.getX()
+    _window.y = m.window.getY()
+    _window.w = m.window.getWidth()
+    _window.h = m.window.getHeight()
+    _window.transform = "identity"
+    json = FormatJSON(_window)
+    print "Writing new window configuration to disk: ", json
+    WriteAsciiFile("window.json", json)
+    return {status: 0, message: "Reset picture configuration and saved new window to disk: "+json}
+  else if msg = "volumeUp" then
+    currentVolume = m.config.volume
+    if currentVolume < 100 then
+      newVolume = currentVolume + 1
+      m.updateConfig("volume",newVolume)
+      return {status: 0, message: "volume increased to "+m.config.volume.toStr()}
+    else 
+      return {status: 0, message: "volume already at maximum of 100"}
+    end if
+  else if msg = "volumeDown"
+    currentVolume = m.config.volume
+    if currentVolume > 0 then
+      newVolume = currentVolume - 1
+      m.updateConfig("volume",newVolume)
+      return {status: 0, message: "volume decreased to "+m.config.volume.toStr()}
+    else 
+      return {status: 0, message: "volume already at minimum of 0"}
+    end if
+  else if msg.getString().tokenize(" ")[0]="config" then 
+    m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
+    return {status: 0, message: "Updated configuration key/value pair: ("+msg.getString().tokenize(" ")[1]+","+msg.getString().tokenize(" ")[1]+")"}
+  else if msg = "flash" or msg = "update scripts" or msg = "updateScripts" then
+    m.updateScripts()
+    ' Exits script
+  else if msg = "updateContent" or msg = "update content" then
+    m.updateContent()
+    ' Exits script
+  else if msg = "reload" then
+    RestartScript()
+    ' Exits script
+  else if msg="debug" then
+    STOP
+    ' Exits script
+  else if msg="exit" then
+    END
+    ' Exits script
+  else if msg="reboot" or msg="restart" then
+    RebootSystem()
+    ' Exits script
+  else 
+    return {status:-1, message: "command not handled by default handler"}
+  end if
+end function
+
 function handleUDP()
   msg = m.udpPort.getMessage() 
   if not msg = invalid
-    if msg="pause" then
-        m.video.pause()
-    else if msg="start" then
-      m.transportState = "starting"
-    else if msg="play" then
-      m.video.resume()
-    else if msg = "playReset" then 
-      m.clock.markStart()
-      m.video.seek(0)
-      seekTime = m.clock.markElapsed()
-      m.video.play()
-      x = m.clock.markElapsed()
-      print "New playback position: (ms)", m.video.getPlaybackPosition()
-      print "seeking to beginning (ms):", seekTime
-      print "seeking to beginning then playing took (ms):", x-seekTime
-      m.transportState = "idle"
-    else if msg = "printLoc" then 
-      print "Playback Position: (ms)", m.video.getPlaybackPosition()
-    else if msg.getString().tokenize(" ")[0]="seek" then 
-      m.video.pause()
-      seekPositionMS = msg.getString().tokenize(" ")[1]
-      m.video.seek(seekPositionMS.toInt())
-    else if msg.getString().tokenize(" ")[0]="seekSec" then 
-      m.video.pause()
-      seekPositionS = msg.getString().tokenize(" ")[1]
-      m.video.seek(int(seekPositionS.toFloat()*1000))
-      print("just sought.")
-    else if msg="ff" then
-      m.video.setPlaybackSpeed(2)
-    else if msg="fff" then
-      m.video.setPlaybackSpeed(8)
-    else if msg="rr" then
-      m.video.setPlaybackSpeed(-2)
-    else if msg="rrr" then
-      m.video.setPlaybackSpeed(-8)
-    else if msg="defaultspeed" then
-      m.video.setPlaybackSpeed(1)
-    else if msg="stretchX" then 
-      m.window.setWidth(m.window.getWidth() + 6)
-      m.window.setX(m.window.getX()-3)
-      m.video.setRectangle(m.window)
-    else if msg="compressX" then 
-      m.window.setWidth(m.window.getWidth() - 6)
-      m.window.setX(m.window.getX()+3)
-      m.video.setRectangle(m.window)
-    else if msg="stretchY" then 
-      m.window.setHeight(m.window.getHeight() + 6)
-      m.window.setY(m.window.getY()-3)
-      m.video.setRectangle(m.window)
-    else if msg="compressY" then 
-      m.window.setHeight(m.window.getHeight() - 6)
-      m.window.setY(m.window.getY()+3)
-      m.video.setRectangle(m.window)
-    else if msg="enlarge" then 
-      _window = ParseJson(ReadAsciiFile("window.json"))
-      m.window.setHeight(m.window.getHeight() + 6)
-      m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
-      m.window.setWidth(m.window.getHeight()*m.aspectRatio)
-      m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
-      m.video.setRectangle(m.window)
-    else if msg="shrink" then 
-      _window = ParseJson(ReadAsciiFile("window.json"))
-      m.window.setHeight(m.window.getHeight() - 6)
-      m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
-      m.window.setWidth(m.window.getHeight()*m.aspectRatio)
-      m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
-      m.video.setRectangle(m.window)
-    else if msg="nudgeUp" then 
-      m.window.setY(m.window.getY() - 5)
-      m.video.setRectangle(m.window)
-    else if msg="nudgeDown" then 
-      m.window.setY(m.window.getY() + 5)
-      m.video.setRectangle(m.window)
-    else if msg="nudgeLeft" then 
-      m.window.setX(m.window.getX() - 5)
-      m.video.setRectangle(m.window)
-    else if msg="nudgeRight" then 
-      m.window.setX(m.window.getX() + 5)
-      m.video.setRectangle(m.window)
-    else if msg="rot180" then
-      m.transform = "rot180"
-      ' m.video.setTransform(m.transform)
-    else if msg="saveWindow" then 
-      _window = createObject("roAssociativeArray")
-      _window.x = m.window.getX()
-      _window.y = m.window.getY()
-      _window.w = m.window.getWidth()
-      _window.h = m.window.getHeight()
-      _window.transform = m.transform
-      json = FormatJSON(_window)
-      print "Writing new window configuration to disk: ", json
-      WriteAsciiFile("window.json", json)
-    else if msg="restoreWindow" then 
-      DeleteFile("window.json")
-      m.setupVideoWindow()
-      _window = createObject("roAssociativeArray")
-      _window.x = m.window.getX()
-      _window.y = m.window.getY()
-      _window.w = m.window.getWidth()
-      _window.h = m.window.getHeight()
-      _window.transform = "identity"
-      json = FormatJSON(_window)
-      print "Writing new window configuration to disk: ", json
-      WriteAsciiFile("window.json", json)
-    else if msg.getString().tokenize(" ")[0]="config" then 
-      m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
-      m.video.setVolume(m.config.volume)
-    else if msg = "printConfig" then
+    responseData = m.handleCommand(msg)
+    if responseData.status = 0 then 
+      return 0
+    end if
+    if msg = "printConfig" then
       for each key in m.config
         print key, m.config[key]
       end for
@@ -492,37 +565,29 @@ function handleUDP()
       if not m.controllerIP = invalid then
         print ("attempting to transmit config data to: "+m.controllerIP)
         for each key in m.config
-          val = m.config[key]
-          if type(val) = "roString" or type(val) = "String" then
-            val = val.getString()
-          else if type(val) = "Integer" then
-            val = val.toStr()
-          else if type(val) = "Boolean" then
-            if val = true then
-              val = "true"
-            else
-              val = "false"
+          if key <> "work" then 
+            val = m.config[key]
+            if type(val) = "roString" or type(val) = "String" then
+              val = val.getString()
+            else if type(val) = "Integer" then
+              val = val.toStr()
+            else if type(val) = "Boolean" then
+              if val = true then
+                val = "true"
+              else
+                val = "false"
+              end if
             end if
-          end if
-          if type(val) <> "Invalid" then 
-            oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/"+key, val)
-            m.udpSocket.sendTo(m.controllerIP, m.config.commandPort, oscMsg)
+            if type(val) <> "Invalid" then 
+              oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/"+key, val)
+              m.udpSocket.sendTo(m.controllerIP, m.config.commandPort, oscMsg)
+            end if
           end if
         end for
         ip = m.nc.getCurrentConfig().ip4_address
         oscMsg = oscBuildMessage("/brightsign/"+m.id.toStr()+"/config/ip",ip.getString())
         m.udpSocket.sendTo(m.controllerIP,m.config.commandPort, oscMsg)
       end if
-    else if msg = "flash" then
-      m.updateScripts()
-    else if msg = "updateContent" then
-      m.updateContent()
-    else if msg = "reload" then
-      RestartScript()
-    else if msg="debug" then
-      STOP
-    else if msg="exit" then
-      END
     else
       bytes = msg.getByteArray()
       if chr(bytes.getEntry(0)) = "/" then ' check to see if first sign is slash, if so, assume osc
@@ -555,7 +620,9 @@ function updateConfig(key, value)
   json = FormatJSON(m.config)
   print "Saving new configuration..."
   for each _key in m.config
-    print _key, m.config[_key]
+    if _key <> "work" then 
+      print _key, m.config[_key]
+    end if
   end for
   if type(value) = "roString" then
     value = value.getString()
@@ -567,6 +634,8 @@ function updateConfig(key, value)
   m.apiRequest.asyncPostFromString("password="+m.password+"&"+key+"="+value)
   if key = "videoPath" then
     ' handler for specific key changes
+  else if key = "volume" then
+    m.video.setVolume(m.config.volume)
   end if
 end function
 
@@ -828,19 +897,27 @@ function injectionPoller()
             if msg.getResponseCode() = 200 then
               codeToInject = ParseJSON(msg.getString())
               for each line in codeToInject
+                print "Code type:", line.type
                 print "Code to inject", line.code
-                results = eval(line.code)
-                sleep(500)
-                if type(results) = "roList" then
-                  for each result in results
-                    m.postToLog("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
-                    sleep(500)
-                    print("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
-                  end for
+                if line.type = "command" then
+                  responseData = m.handleCommand(line.code)
+                  sleep(500)
+                  m.postToLog(responseData.message)
+                  sleep(500)
+                else if line.type = "raw" then
+                  results = eval(line.code)
+                  sleep(500)
+                  if type(results) = "roList" then
+                    for each result in results
+                      m.postToLog("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
+                      sleep(500)
+                      print("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
+                    end for
 
-                else
-                  m.postToLog("Executed code with status: "+results.toStr())
-                  print("Executed code with status code: " + results.toStr())
+                  else
+                    m.postToLog("Executed code with status: "+results.toStr())
+                    print("Executed code with status code: " + results.toStr())
+                  end if
                 end if
                 sleep(500)
               end for
