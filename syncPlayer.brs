@@ -32,7 +32,7 @@ function createSyncPlayer(_config as Object) as Object
   player.downloadRequest.setPort(player.downloadResponsePort)
 
   player.configRequest = createObject("roUrlTransfer")
-  player.configRequest.setUrl(player.apiEndpoint)
+  player.configRequest.setUrl(player.apiEndpoint+"/poll/config")
   player.configResponsePort = createObject("roMessagePort")
   player.configRequest.setPort(player.configResponsePort)
   player.configMetronome = createObject("roTimer")
@@ -44,7 +44,7 @@ function createSyncPlayer(_config as Object) as Object
   player.configPoller = configPoller
 
   player.injectionRequest = createObject("roUrlTransfer")
-  player.injectionRequest.setUrl(player.apiEndpoint+"/inject")
+  player.injectionRequest.setUrl(player.apiEndpoint+"/poll/inject")
   player.injectionResponsePort = createObject("roMessagePort")
   player.injectionRequest.setPort(player.injectionResponsePort)
   player.injectionMetronome = createObject("roTimer")
@@ -103,6 +103,13 @@ function createSyncPlayer(_config as Object) as Object
     WriteAsciiFile("config.json", FormatJSON(player.config))
     player.apiRequest.setUrl(player.apiEndpoint+"/volume")
     player.apiRequest.asyncPostFromString("password="+player.password+"&volume="+player.config.volume.toStr())
+  end if
+
+  if player.config.quietMode = invalid then
+    player.config.quietMode = 1
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/quietMode")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&quietMode="+player.config.quietMode.toStr())
   end if
 
   if player.config.startupLeaderDelay = invalid then
@@ -198,7 +205,7 @@ function createSyncPlayer(_config as Object) as Object
   player.video = createObject("roVideoPlayer")
   player.video.setPort(player.videoPort)
   player.video.setViewMode(0) 
-  player.video.setVolume(player.config.volume) ' see config stuff in master from zachpoff
+  player.video.setVolume(cint(player.config.volume*player.config.quietMode)) ' see config stuff in master from zachpoff
   if ParseJSON(readasciifile("audio.json")) <> invalid then 
     audioSettings = ParseJSON(ReadAsciiFile("audio.json"))
     player.audio = CreateObject("roAudioOutput", audioSettings.output)
@@ -635,7 +642,7 @@ function updateConfig(key, value)
   if key = "videoPath" then
     ' handler for specific key changes
   else if key = "volume" then
-    m.video.setVolume(m.config.volume)
+    m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
   end if
 end function
 
@@ -825,26 +832,28 @@ function configPoller()
     if m.config.pollForConfigChanges and m.provisioned = "true" then
       if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
         if m.configPollingState = "waitingToPoll"
-          msg = m.configMetronomeTriggerPort.getMessage()
-          if msg <> invalid then
-            m.configRequest.asyncGetToString()
-            m.configMetronome.setElapsed(1,0)
-            m.configMetronome.start()
-            m.configPollingState = "waitingForResponse"
-          end if
+          m.configRequest.asyncGetToString()
+          m.configPollingState = "waitingForResponse"
         else if m.configPollingState = "waitingForResponse"
           msg = m.configResponsePort.getMessage()
           if msg <> invalid
             if msg.getResponseCode() = 200 then
               data = ParseJSON(msg.getString())
-              m.config = data
-              m.video.setVolume(m.config.volume)
+              data.reset()
+              while data.isNext()
+                key = data.next()
+                val = data.lookup(key)
+                m.config.addReplace(key,val)
+              end while
+              m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
               WriteAsciiFile("config.json",FormatJSON(data))
               if m.config.downloadNewContent then
                 m.updateContent() ' get new media
               end if
+            else 
             end if
             m.configPollingState="waitingToPoll"
+          else
           end if
         end if
 
@@ -884,13 +893,8 @@ function injectionPoller()
     if m.config.pollForCodeInjection and m.provisioned = "true" then
       if (m.video.getPlaybackPosition() > 1000 and m.video.getPlaybackPosition() < m.duration - 3000) or m.transportState = "noValidVideo" then
         if m.injectionPollingState = "waitingToPoll"
-          msg = m.injectionMetronomeTriggerPort.getMessage()
-          if msg <> invalid then
-            m.injectionRequest.asyncGetToString()
-            m.injectionMetronome.setElapsed(1,0)
-            m.injectionMetronome.start()
-            m.injectionPollingState = "waitingForResponse"
-          end if
+          m.injectionRequest.asyncGetToString()
+          m.injectionPollingState = "waitingForResponse"
         else if m.injectionPollingState = "waitingForResponse"
           msg = m.injectionResponsePort.getMessage()
           if msg <> invalid
