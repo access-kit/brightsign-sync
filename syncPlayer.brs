@@ -32,7 +32,7 @@ function createSyncPlayer(_config as Object) as Object
   player.downloadRequest.setPort(player.downloadResponsePort)
 
   player.configRequest = createObject("roUrlTransfer")
-  player.configRequest.setUrl(player.apiEndpoint+"/poll/config")
+  player.configRequest.setUrl(player.apiEndpoint+"/poll/config?"+"password="+player.password)
   player.configResponsePort = createObject("roMessagePort")
   player.configRequest.setPort(player.configResponsePort)
   player.configMetronome = createObject("roTimer")
@@ -44,7 +44,7 @@ function createSyncPlayer(_config as Object) as Object
   player.configPoller = configPoller
 
   player.injectionRequest = createObject("roUrlTransfer")
-  player.injectionRequest.setUrl(player.apiEndpoint+"/poll/inject")
+  player.injectionRequest.setUrl(player.apiEndpoint+"/poll/inject?"+"password="+player.password)
   player.injectionResponsePort = createObject("roMessagePort")
   player.injectionRequest.setPort(player.injectionResponsePort)
   player.injectionMetronome = createObject("roTimer")
