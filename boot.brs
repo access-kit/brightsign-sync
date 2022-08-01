@@ -381,7 +381,7 @@ function bootSetup()
     requestPlayerID.setPort(requestPlayerIDPort)
     requestPlayerID.asyncPostFromString("password="+password+"&serialNumber="+uniqueID+"&ipAddress="+currentIP+"&syncUrl="+syncUrl+"&macAddress="+macAddress)
 
-    msg = requestPlayerIDPort.waitmessage(5000)
+    msg = requestPlayerIDPort.waitmessage(20000)
 
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
