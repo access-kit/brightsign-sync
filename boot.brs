@@ -18,10 +18,21 @@ function bootSetup()
     networkConfig.addReplace("broadcast","192.168.0.255")
     networkConfig.addReplace("netmask","255.255.255.0")
     networkConfig.addReplace("dns","8.8.8.8")
+    networkConfig.addReplace("useWifi",false)
+    networkConfig.addReplace("wifiSSID","my-wifi")
     WriteAsciiFile("network.json",formatjson(networkConfig))
   end if
+  if networkConfig.useWifi = invalid then
+    networkConfig.useWifi = false
+    WriteAsciiFile("network.json",formatjson(networkConfig))
+  end if
+
   accessKitReg = createObject("roRegistrySection", "accessKit")
-  n = CreateObject("roNetworkConfiguration", 0)
+  if networkConfig.useWifi then
+    n = CreateObject("roNetworkConfiguration", 1)
+  else
+    n = CreateObject("roNetworkConfiguration", 0)
+  end if
   registry = CreateObject("roRegistry")
   networkConfigLogger = CreateObject("roAssociativeArray")
   shouldReboot = False
@@ -62,6 +73,16 @@ function bootSetup()
       textbox.SendBlock("Registry reset complete.  Restarting and then will configure network.")
       sleep(4000)
       RebootSystem()
+    end if
+  end if
+
+  if networkConfig.useWifi then
+    if not n.GetWiFiESSID() = networkConfig.wifiSSID then
+      n.SetWiFiESSID(networkConfig.wifiSSID)
+    end if
+    if networkConfig.wifiPASS <> invalid then
+      n.SetWiFiPassphrase(networkConfig.wifiPASS)
+      networkConfig.delete("wifiPASS")
     end if
   end if
 
