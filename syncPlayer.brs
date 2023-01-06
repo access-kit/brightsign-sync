@@ -71,10 +71,10 @@ function createSyncPlayer(_config as Object) as Object
   end if
 
   if player.config.workId = invalid then
-    player.config.addReplace("workId",1)
-    WriteAsciiFile("config.json", FormatJSON(player.config))
-    player.apiRequest.setUrl(player.apiEndpoint+"/workId")
-    player.apiRequest.asyncPostFromString("password="+player.password+"&workId="+player.config.workId.toStr())
+    player.config.addReplace("workId",-1)
+    ' WriteAsciiFile("config.json", FormatJSON(player.config))
+    ' player.apiRequest.setUrl(player.apiEndpoint+"/workId")
+    ' player.apiRequest.asyncPostFromString("password="+player.password+"&workId="+player.config.workId.toStr())
   end if
 
   if player.config.videoPath = invalid then
