@@ -1,4 +1,5 @@
 function bootSetup()
+  textbox = createTextBox()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
@@ -29,14 +30,23 @@ function bootSetup()
 
   accessKitReg = createObject("roRegistrySection", "accessKit")
   if networkConfig.useWifi then
+    if accessKitReg.exists("id") then
+      print("will attempt to use wifi in boot loop")
+    else
+      textbox.sendBlock("Will attempt to use WiFi in boot loop...")
+    end if
     n = CreateObject("roNetworkConfiguration", 1)
   else
+    if accessKitReg.exists("id") then
+      print("will attempt to use ethernet in boot loop")
+    else
+      textbox.sendBlock("Will attempt to use Ethernet in boot loop...")
+    end if
     n = CreateObject("roNetworkConfiguration", 0)
   end if
   registry = CreateObject("roRegistry")
   networkConfigLogger = CreateObject("roAssociativeArray")
   shouldReboot = False
-  textbox = createTextBox()
 
   if initstatus.runnetworkdiagnostics = "true" then
     writeasciifile("interfaceTestResults.json",formatjson(n.testinterface()))
@@ -78,9 +88,15 @@ function bootSetup()
 
   if networkConfig.useWifi then
     if not n.GetWiFiESSID() = networkConfig.wifiSSID then
+      textbox.sendBlock("Setting up wifi... using SSID "+networkConfig.wifiSSID)
+      sleep(2000)
+      textbox.cls()
       n.SetWiFiESSID(networkConfig.wifiSSID)
     end if
     if networkConfig.wifiPASS <> invalid then
+      textbox.sendBlock("Setting wifi password")
+      sleep(2000)
+      textbox.cls()
       n.SetWiFiPassphrase(networkConfig.wifiPASS)
       networkConfig.delete("wifiPASS")
       n.apply()
