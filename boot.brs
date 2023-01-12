@@ -83,6 +83,7 @@ function bootSetup()
     if networkConfig.wifiPASS <> invalid then
       n.SetWiFiPassphrase(networkConfig.wifiPASS)
       networkConfig.delete("wifiPASS")
+      ' TODO: Should overwrite network.json file!!!
     end if
   end if
 
