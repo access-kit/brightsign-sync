@@ -34,6 +34,8 @@ function bootSetup()
       print("will attempt to use wifi in boot loop")
     else
       textbox.sendBlock("Will attempt to use WiFi in boot loop...")
+      sleep(1000)
+      textbox.cls()
     end if
     n = CreateObject("roNetworkConfiguration", 1)
   else
@@ -41,6 +43,8 @@ function bootSetup()
       print("will attempt to use ethernet in boot loop")
     else
       textbox.sendBlock("Will attempt to use Ethernet in boot loop...")
+      sleep(1000)
+      textbox.cls()
     end if
     n = CreateObject("roNetworkConfiguration", 0)
   end if
