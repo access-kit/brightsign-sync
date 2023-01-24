@@ -1,11 +1,13 @@
 function createSubtitler(parent)
+  print("Initializing subtitler...")
   subtitler = createObject("roAssociativeArray")
 
   ' Widget Creation
   videoMode = createObject("roVideoMode")
-  xAnchor = videoMode.getSafeX()+10
+  widthFraction = 0.8
+  xAnchor = videoMode.getSafeX()+videoMode.getSafeWidth()*(1.0-widthFraction)/2.0
   yAnchor = videoMode.GetSafeY()+videoMode.GetSafeHeight()-170
-  width = videoMode.getSafeWidth()-20
+  width = widthFraction*videoMode.getSafeWidth()
   height = 160
   subtitleRectangle = createObject("roRectangle",xAnchor,yAnchor,width,height)
   params = {Alignment:1, TextMode:2, PauseTime:0, LineCount:2}
@@ -16,7 +18,7 @@ function createSubtitler(parent)
 
   subtitler.rect = subtitleRectangle
   subtitler.widget = subtitleWidget
-  subtitler.activationState = "inactive"
+  subtitler.activationState = "inactive"   ' 'starting' | 'inactive' | 'active'
   subtitler.thresholdState = "waitingToCrossNextStart"
   subtitler.update = subtitleMachine
   subtitler.activate = activateSubtitles
@@ -25,42 +27,70 @@ function createSubtitler(parent)
   subtitler.parent = parent ' ref to parent engine
   subtitler.currentIndex = 0
   subtitler.determineCurrentIndex = determineCurrentIndex
-  subtitler.metronome = createObject("roTimer") ' for polling 
-  subtitler.metronomeTrigger = createObject("roMessagePort") ' Port which will receive events to trigger get requests
-  subtitler.metronome.setPort(subtitler.metronomeTrigger)
-  subtitler.metronome.setElapsed(5,0)
-  subtitler.metronome.start()
 
+  ' TODO: Make sure it does not cause crashes for unregistered players or missing subtitles
   subtitler.srtFetcher = createObject("roUrlTransfer")
-  subtitler.srtFetcher.setUrl(parent.config.syncUrl+"/api/work/"+parent.config.workId.toStr())
+  subtitler.srtFetcher.setUrl(parent.config.syncUrl+"/api/mediaplayer/"+parent.id.toStr()+"?includeSubtitles=true")
   subtitler.srtResponse = createObject("roMessagePort")
   subtitler.srtFetcher.setPort(subtitler.srtResponse)
+  subtitler.fetchSubtitles = fetchSubtitles
+  subtitler.fetchSubtitles()
+  print("Subtitler initialized.")
 
-  ' Set up polling for subtitle toggling
-  subtitler.statePoller = createObject("roUrlTransfer")
-  subtitler.statePoller.setUrl(parent.apiEndpoint+"/work")
-  subtitler.statePollerResponsePort = createObject("roMessagePort")
-  subtitler.statePoller.setPort(subtitler.statePollerResponsePort)
-  subtitler.pollingState = "waitingToPoll"
 
-  if parent.config.updateSubtitles then
-    subtitler.srtFetcher.asyncGetToString()
-    res = subtitler.srtResponse.waitMessage(3000)
-    if res <> invalid then
-      if res.getResponseCode() = 200 then
-        data = parseJSON(res.getString())
-        parsedSrt = data.parsedSrt
-        WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
-        subtitler.events = parsedSrt
-      else 
-        subtitler.events = ParseJSON(ReadAsciiFile("subtitles.json"))
-      end if
-    else
-      subtitler.events = ParseJSON(ReadAsciiFile("subtitles.json"))
-    end if
-  end if
+  ' TODO: Decide the write flow for updating subtitles file
   return subtitler
 end function 
+
+function fetchSubtitles()
+  print("Fetching subtitles...")
+  m.srtFetcher.asyncGetToString()
+  res = m.srtResponse.waitMessage(1000)
+  if res <> invalid then
+    if res.getResponseCode() = 200 then
+      data = parseJSON(res.getString())
+      ' TODO: Check if subtitls are 
+      if data.work <> invalid
+        if data.work.parsedSrts.count() = 0
+          m.events = createDefaultSubtitles()
+          print("Found work, but no subtitles available.")
+        else
+          parsedSrt = data.work.parsedSrts[0]
+          WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
+          m.events = parsedSrt
+          print("Found subtitles.")
+        end if
+      else 
+          m.events = createDefaultSubtitles()
+          print("No subitles found (no work associated with this mediaplayer)")
+      end if
+    else 
+      print("Error in request to get subtitles (possibly missing work)")
+      m.events = createDefaultSubtitles()
+    end if
+  else
+    print("Invalid response when fetching subtitles (possibly a network eror)")
+    m.events = createDefaultSubtitles()
+  end if
+  if m.events.count() <= m.currentIndex
+    m.widget.hide()
+    m.widget.clear()
+    m.thresholdState = "waitingToFinishLoop"
+  end if
+  m.determineCurrentIndex()
+end function
+
+function createDefaultSubtitles()
+  event = createObject("roAssociativeArray")
+  event.id = 0
+  event.start = 0
+  event.end = 10
+  event.text = "No captions available."
+  parsedSrt = createObject("roArray", 1, true)
+  parsedSrt.push(event)
+  WriteAsciiFile("subtitles.json", FormatJSON(parsedSrt))
+  return parsedSrt
+end function
 
 function subtitleMachine()
   if m.activationState = "starting" then
@@ -72,10 +102,12 @@ function subtitleMachine()
       if m.video.getPlaybackPosition() >= m.events[m.currentIndex].start*1000 then
         m.widget.clear()
         m.widget.pushString(m.events[m.currentIndex].text)
+        m.widget.show()
         m.thresholdState = "waitingToCrossNextEnd"
       end if
     else if m.thresholdState = "waitingToCrossNextEnd" then
       if m.video.getPlaybackPosition() >= m.events[m.currentIndex].end*1000 then
+        m.widget.hide()
         m.widget.clear()
         if m.currentIndex = m.events.count()-1 then
           m.thresholdState = "waitingToFinishLoop"
@@ -88,62 +120,29 @@ function subtitleMachine()
       if m.video.getPlaybackPosition() < m.events[m.currentIndex].end*1000 then
         m.currentIndex = 0
         m.thresholdState = "waitingToCrossNextStart"
-        if m.parent.config.autoShutoffSubtitles then
-          m.deactivate()
-        end if
+        ' if m.parent.config.autoShutoffSubtitles then
+        '   m.deactivate()
+        ' end if
       end if
     end if
   else if m.activationState = "inactive"
   end if
-
-  ' subtitle state polling engine
-  if m.parent.config.pollForSubtitleState then
-    if m.video.getPlaybackPosition() > 1000 or m.video.getPlaybackPosition() < m.parent.duration - 3000 then
-      if m.pollingState = "waitingToPoll"
-        msg = m.metronomeTrigger.getMessage()
-        if msg <> invalid then
-          m.statePoller.asyncGetToString()
-          m.metronome.setElapsed(1,0)
-          m.metronome.start()
-          m.pollingState = "waitingForResponse"
-        end if
-      else if m.pollingState = "waitingForResponse"
-        msg = m.statePollerResponsePort.getMessage()
-        if msg <> invalid
-          if msg.getResponseCode() = 200 then
-            data = ParseJSON(msg.getString())
-            if data.work.onScreenSubtitles  then
-              if m.activationState = "inactive" then
-                print("activating on screen subtitles")
-                m.activate()
-              end if
-            else 
-              if m.activationState <> "inactive"
-                print("deactivating on screen subtitles")
-                m.deactivate()
-              end if
-            end if
-          end if
-          m.pollingState="waitingToPoll"
-        end if
-      end if
-
-    else 
-      ' block api requests during critical sync windows
-    end if
-  end if
 end function
 
 function activateSubtitles()
-  m.widget.clear()
-  m.widget.show()
-  m.activationState = "starting"
+  if m.activationState = "inactive"
+    m.widget.clear()
+    m.widget.show()
+    m.activationState = "starting" 
+  end if
 end function
 
 function deactivateSubtitles()
-  m.widget.clear()
-  m.widget.hide()
-  m.activationState = "inactive"
+  if m.activationState <> "inactive"
+    m.widget.clear()
+    m.widget.hide()
+    m.activationState = "inactive"
+  end if
 end function
 
 function determineCurrentIndex()
