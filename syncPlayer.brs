@@ -1,4 +1,6 @@
 LIBRARY "time.brs"
+LIBRARY "subtitler.brs"
+LIBRARY "gpio.brs"
 LIBRARY "oscBuilder.brs"
 LIBRARY "oscParser.brs"
 
@@ -198,6 +200,7 @@ function createSyncPlayer(_config as Object) as Object
   player.clock = createClock(player.config.syncUrl,player.password)
 
 
+
   ' Video port for events
   player.videoPort = createObject("roMessagePort")
 
@@ -221,6 +224,13 @@ function createSyncPlayer(_config as Object) as Object
 
   ' Load the currently selected video and report its duration
   player.loadVideoFile()
+
+  ' Create a subtitler engine
+  player.subtitler = createSubtitler(player)
+  
+  ' Create GPIO Handler
+  player.gpioHandler = createGPIOManager(player)
+  player.gpioEnabled = true
 
   ' UDP Setup
   player.setupUDP()
@@ -529,6 +539,15 @@ function handleCommand(msg)
   else if msg.getString().tokenize(" ")[0]="config" then 
     m.updateConfig(msg.getString().tokenize(" ")[1], msg.getString().tokenize(" ")[2])
     return {status: 0, message: "Updated configuration key/value pair: ("+msg.getString().tokenize(" ")[1]+","+msg.getString().tokenize(" ")[1]+")"}
+  else if msg = "refetch subtitles"
+    m.subtitler.fetchSubtitles()
+    return {status: 0, message: "Fetched new subtitles."}
+  else if msg = "activate subtitles"
+    m.subtitler.activate()
+    return {status: 0, message: "Activated subtitles"}
+  else if msg = "deactivate subtitles"
+    m.subtitler.deactivate()
+    return {status: 0, message: "Deactivated subtitles"}
   else if msg = "flash" or msg = "update scripts" or msg = "updateScripts" then
     m.updateScripts()
     ' Exits script
@@ -745,6 +764,8 @@ function runMachines()
     m.handleUDP()
     m.transport()
     m.sync()
+    m.subtitler.update()
+    m.gpioHandler.handle()
     m.firmwareCMS()
     m.contentCMS()
     m.configPoller()
