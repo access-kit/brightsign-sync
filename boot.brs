@@ -1,4 +1,5 @@
 function bootSetup()
+  textbox = createTextBox()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
@@ -18,14 +19,34 @@ function bootSetup()
     networkConfig.addReplace("broadcast","192.168.0.255")
     networkConfig.addReplace("netmask","255.255.255.0")
     networkConfig.addReplace("dns","8.8.8.8")
+    networkConfig.addReplace("useWifi",false)
+    networkConfig.addReplace("wifiSSID","my-wifi")
     WriteAsciiFile("network.json",formatjson(networkConfig))
   end if
+  if networkConfig.useWifi = invalid then
+    networkConfig.useWifi = false
+    WriteAsciiFile("network.json",formatjson(networkConfig))
+  end if
+
   accessKitReg = createObject("roRegistrySection", "accessKit")
-  n = CreateObject("roNetworkConfiguration", 0)
+  if networkConfig.useWifi then
+    if accessKitReg.exists("id") then
+      print("will attempt to use wifi in boot loop")
+    else
+      textbox.sendBlock("Will attempt to use WiFi in boot loop...")
+    end if
+    n = CreateObject("roNetworkConfiguration", 1)
+  else
+    if accessKitReg.exists("id") then
+      print("will attempt to use ethernet in boot loop")
+    else
+      textbox.sendBlock("Will attempt to use Ethernet in boot loop...")
+    end if
+    n = CreateObject("roNetworkConfiguration", 0)
+  end if
   registry = CreateObject("roRegistry")
   networkConfigLogger = CreateObject("roAssociativeArray")
   shouldReboot = False
-  textbox = createTextBox()
 
   if initstatus.runnetworkdiagnostics = "true" then
     writeasciifile("interfaceTestResults.json",formatjson(n.testinterface()))
@@ -62,6 +83,24 @@ function bootSetup()
       textbox.SendBlock("Registry reset complete.  Restarting and then will configure network.")
       sleep(4000)
       RebootSystem()
+    end if
+  end if
+
+  if networkConfig.useWifi then
+    if not n.GetWiFiESSID() = networkConfig.wifiSSID then
+      textbox.sendBlock("Setting up wifi... using SSID "+networkConfig.wifiSSID)
+      sleep(2000)
+      textbox.cls()
+      n.SetWiFiESSID(networkConfig.wifiSSID)
+    end if
+    if networkConfig.wifiPASS <> invalid then
+      textbox.sendBlock("Setting wifi password")
+      sleep(2000)
+      textbox.cls()
+      n.SetWiFiPassphrase(networkConfig.wifiPASS)
+      networkConfig.delete("wifiPASS")
+      n.apply()
+      ' TODO: Should overwrite network.json file!!!
     end if
   end if
 
@@ -247,12 +286,59 @@ function bootSetup()
   if accessKitReg.exists("id") then
     id = accessKitReg.read("id").toInt()
     password = accessKitReg.read("password")
+    syncUrl = accessKitReg.read("syncUrl")
     print "Player already provisioned with id "+id.toStr()+"."
-    previousConfig = ParseJSON(ReadAsciiFile("config.json"))
+    if accessKitReg.exists("password") <> true then
+      print("No password in registry.")
+      localConfig= ParseJSON(ReadAsciiFile("config.json"))
+      if localConfig <> invalid then 
+        configPassword = localConfig.password
+        print "Password found in local file."
+        if configPassword <> invalid then
+          password = configPassword
+          accessKitReg.write("password", password)
+          accessKitReg.flush()
+        else
+          print("No password in the access kit registry and no sync url in the config file.")
+          textbox.sendBlock("No password was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+          sleep(3000)
+
+        end if
+      else 
+        print("No password in the access kit registry and no sync url in the config file.")
+        textbox.sendBlock("No password was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+          sleep(3000)
+      end if
+    else
+      print "Password found in registry."
+    end if
+    if accessKitReg.exists("syncUrl") <> true then
+      print("No sync url in registry.")
+      localConfig= ParseJSON(ReadAsciiFile("config.json"))
+      if localConfig <> invalid then 
+        configSyncUrl = localConfig.syncUrl
+        print "syncUrl found in local file: ", configSyncUrl
+        if configSyncUrl <> invalid then
+          syncUrl = configSyncUrl
+          accessKitReg.write("syncUrl", syncUrl)
+          accessKitReg.flush()
+        else
+          print("No sync url in the access kit registry and no sync url in the config file.")
+          textbox.sendBlock("No Sync URL was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+          sleep(3000)
+        end if
+      else 
+        print("No sync url in the access kit registry and no sync url in the config file.")
+        textbox.sendBlock("No Sync URL was found in the registry or in the configuration file.  Please add it to the config file then reboot.")
+        sleep(3000)
+      end if
+    else
+      print "syncUrl found in registry: ", syncUrl
+    end if
     print "Checking for new configuration..."
     ' check for new config data
     configRequest = createObject("rourltransfer")
-    configRequest.setUrl(previousConfig.syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
+    configRequest.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
@@ -291,7 +377,7 @@ function bootSetup()
       ' Updates remote with new IP
       print("Sending IP and MAC address to Access-Kit API...")
       ipReq = createObject("rourltransfer")
-      ipReq.setUrl(previousConfig.syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
+      ipReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
       ipReq.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
       macReq = createObject("rourltransfer")
       macReq.setUrl(data.syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
@@ -307,25 +393,34 @@ function bootSetup()
 
     initialConfigData = ParseJSON(ReadAsciiFile("config.json"))
     password = initialConfigData.password
+    syncUrl = initialConfigData.syncUrl
     if password = invalid then
       password = "null"
       print("No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
-      textbox.SendBlock(" No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      textbox.SendBlock("No password was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      sleep(4000)
+      textbox.Cls()
+    end if
+    if syncUrl = invalid then
+      syncUrl = "null"
+      print("No syncurl was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
+      textbox.SendBlock("No Sync URL was provided for provisioning.  Please log in to your access kit account for the proper provisioning configuration data.")
       sleep(4000)
       textbox.Cls()
     end if
     accessKitReg.write("serialNumber",uniqueID)
     accessKitReg.write("password",password)
+    accessKitReg.write("syncUrl",syncUrl)
     accessKitReg.flush()
     registry.flush()
 
     requestPlayerID = createObject("rourltransfer")
-    requestPlayerID.setURL(initialConfigData.syncUrl+"/api/mediaplayer/serialnumber")
+    requestPlayerID.setURL(syncUrl+"/api/mediaplayer/serialnumber")
     requestPlayerIDPort = createObject("roMessagePort")
     requestPlayerID.setPort(requestPlayerIDPort)
-    requestPlayerID.asyncPostFromString("password="+password+"&serialNumber="+uniqueID+"&ipAddress="+currentIP+"&syncUrl="+initialConfigData.syncUrl+"&macAddress="+macAddress)
+    requestPlayerID.asyncPostFromString("password="+password+"&serialNumber="+uniqueID+"&ipAddress="+currentIP+"&syncUrl="+syncUrl+"&macAddress="+macAddress)
 
-    msg = requestPlayerIDPort.waitmessage(5000)
+    msg = requestPlayerIDPort.waitmessage(20000)
 
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
@@ -371,7 +466,6 @@ function bootSetup()
         sleep(4000)
         textbox.cls()
         print("failed to connect.")
-        accessKitReg.write("provisioningFailure","false")
         accessKitReg.flush()
         registry.flush()
       end if

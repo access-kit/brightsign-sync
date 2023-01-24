@@ -338,17 +338,42 @@ function synchronizeTimestamp(timestamp as String) as String
   inputS = input.left(10).toInt()
   inputMS = input.right(3).toInt()
   ' Add server time offset to ms
+  print "Timestamp", timestamp
+  print "Offset", m.serverTimeOffset
   msSum = inputMS+m.serverTimeOffset
+  print "MS Sum", msSum.toStr()
   ' Set up placeholders for final values
-  finalS = inputS
-  finalMS = msSum
+  finalS = 0
+  finalMS = 0
   ' Carry digits if ms add up to more than 1s
   if msSum >= 1000 then
+    print "positive carrying"
     quotient = int(msSum/1000)
+    print "Quotient", quotient
     remainder = int(msSum mod 1000)
-    finalS = finalS + quotient
+    print "Remainder", remainder
+    finalS = inputS + quotient
     finalMS = remainder
+  else if msSum < 0  and msSum > -1000 then
+    print("small negative carrying")
+    finalS = inputS - 1 
+    finalMS = 1000 + msSum
+  else if msSum <= -1000 then
+    print("large negative carrying")
+    quotient = abs(int(msSum/1000))
+    print "Quotient", quotient
+    remainder = msSum+ quotient*1000
+    print "Remainder", remainder
+    finalS =inputS - quotient
+    finalMS = remainder
+    finalS = int(finalS)
+    finalMS = int(finalMS)
+  else 
+    print("no carrying")
+    finalS = inputS
+    finalMS = msSum
   end if
+  print "final",finals;finalms
   seconds = box(finalS.toStr())
   milliseconds = box(finalMS.toStr())
   ' Pad ms with zeros
