@@ -51,14 +51,19 @@ function fetchSubtitles()
       data = parseJSON(res.getString())
       ' TODO: Check if subtitls are 
       if data.work <> invalid
-        if data.work.parsedSrts.count() = 0
-          m.events = createDefaultSubtitles()
-          print("Found work, but no subtitles available.")
+        if data.work.parsedSrts <> invalid
+          if data.work.parsedSrts.count() = 0
+            m.events = createDefaultSubtitles()
+            print("Found work, but no subtitles available.")
+          else
+            parsedSrt = data.work.parsedSrts[0]
+            WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
+            m.events = parsedSrt
+            print("Found subtitles.")
+          end if
         else
-          parsedSrt = data.work.parsedSrts[0]
-          WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
-          m.events = parsedSrt
-          print("Found subtitles.")
+          m.events = createDefaultSubtitles()
+          print("Found work, but no multilingual subtitles delivered.  API endpoint not yet upgraded.")
         end if
       else 
           m.events = createDefaultSubtitles()
