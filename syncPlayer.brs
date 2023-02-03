@@ -796,7 +796,7 @@ function updateScripts()
   for each entry in data
     path = entry.path
     if path.inStr("/") = -1 then
-      if path.right(3) = "brs" or path="init.json" then
+      if path.right(3) = "brs" or path="init.json" or path.left(9) = "subtitles" then
         print("Downloading "+path+"...")
         request.setUrl(m.config.firmwareUrl + "/"+path)
         request.asyncGetToFile(path)

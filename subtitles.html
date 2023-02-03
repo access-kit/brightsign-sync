@@ -1,0 +1,68 @@
+<html>
+	<head>
+		<script>
+      let subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
+      const getSubtitles = async (url) => {
+        try {
+          console.log(`fetching subtitles from ${url}`)
+          const res = await fetch(url)
+          const {work} = await res.json()
+          if (work) {
+            // TODO: error handling
+            if (work.parsedSrts) {
+              if (work.parsedSrts.length > 0) {
+                subtitles= work.parsedSrts[0]
+              } else {
+                throw Error("Failed to fetch subtitles since no SRTS associated with the assigned work.")
+              }
+            } else {
+              throw Error("Failed to fetch subtitles because no 'parsedSrt' field in response.  API endpoint not yet upgraded.")
+            }
+          } else {
+            throw Error("Failed to fetch subtitles since no work associated with this media player.")
+          }
+        } catch (e) {
+          console.error(e)
+          subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
+        }
+      }
+      const BS_MESSAGE_PORT = require("@brightsign/messageport")
+      const port = new BS_MESSAGE_PORT()
+      const listener = port.addEventListener("bsmessage", function (data) {
+        const el = document.getElementById("subtitle-text")
+        switch (data.code) {
+          case 'raw': 
+            el.textContent = data.text
+            break
+          case 'subtitle-index':
+            // Looks for <br/> <br> &lt; &gt; \n
+            // handles whitespace in break tags
+            const line =  subtitles[Math.min(Number(data.id), subtitles.length -1)].text
+            const findLineBreaks = /<\s*br\s*\/?\s*>|&lt;?\s*br\s*\/?\s*&gt;?|\\n/
+            const lines = line.split(findLineBreaks)
+            // remove empty lines
+            lines.forEach((line, index) => {
+              if (line.length === 0) lines.splice(index)
+            })
+            const subtitle = lines.join("\r\n")
+            el.textContent = subtitle
+            break
+          case 'clear':
+            el.textContent = ''
+            break
+          case 'fetch-subtitles':
+            getSubtitles(data.url)
+            break
+          default:
+            console.error("Unhandled bsmessage data", data)
+        }
+      })
+		</script>
+		<link rel="stylesheet" href="./subtitles.css">
+	</head>
+
+	<body>
+		<p id="subtitle-text"></p>
+	</body>
+
+</html>
