@@ -1,6 +1,4 @@
 LIBRARY "time.brs"
-LIBRARY "subtitler.brs"
-LIBRARY "gpio.brs"
 LIBRARY "oscBuilder.brs"
 LIBRARY "oscParser.brs"
 
@@ -236,6 +234,23 @@ function createSyncPlayer(_config as Object) as Object
   player.setupUDP()
   
   return player
+end function
+
+function consume()
+end function
+
+function createSubtitler(player)
+  subtitler = createObject("roAssociativeArray")
+  subtitler.update = consume
+  subtitler.activate = consume
+  subtitler.deactivate = consume
+  return subtitler
+end function
+
+function createGPIOManager(player)
+  handler = createObject("roAssociativeArray")
+  handler.handle = consume
+  return handler
 end function
 
 
