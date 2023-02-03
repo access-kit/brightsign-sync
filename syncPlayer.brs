@@ -1,4 +1,6 @@
 LIBRARY "time.brs"
+' LIBRARY "subtitler.brs"
+' LIBRARY "gpio.brs"
 LIBRARY "oscBuilder.brs"
 LIBRARY "oscParser.brs"
 
