@@ -1,6 +1,7 @@
 LIBRARY "time.brs"
 ' LIBRARY "subtitler.brs"
 ' LIBRARY "gpio.brs"
+' LIBRARY "timeline.brs"
 LIBRARY "oscBuilder.brs"
 LIBRARY "oscParser.brs"
 
@@ -12,6 +13,7 @@ function createSyncPlayer(_config as Object) as Object
   player.provisioned = player.accessKitReg.read("provisioned")
 
   player.handleCommand = handleCommand
+  player.handleRawOrCommand = handleRawOrCommand
   player.changeRegistration = changeRegistration
 
   if player.provisioned = "true" then
@@ -232,6 +234,10 @@ function createSyncPlayer(_config as Object) as Object
   player.gpioHandler = createGPIOManager(player)
   player.gpioEnabled = true
 
+  ' Create Timeline Manager
+  player.timelineManager = createTimelineManager(player)
+  player.timelineManager.enabled = true
+
   ' UDP Setup
   player.setupUDP()
   
@@ -244,6 +250,7 @@ end function
 function createSubtitler(player)
   subtitler = createObject("roAssociativeArray")
   subtitler.update = consume
+  subtitler.fetchSubtitles = consume
   subtitler.activate = consume
   subtitler.deactivate = consume
   return subtitler
@@ -253,6 +260,13 @@ function createGPIOManager(player)
   handler = createObject("roAssociativeArray")
   handler.handle = consume
   return handler
+end function
+
+function createTimelineManager(player)
+  timelineManager = createObject("roAssociativeArray")
+  timelineManager.update = consume
+  timelineManager.fetchEvents = consume
+  return timelineManager
 end function
 
 
@@ -565,6 +579,9 @@ function handleCommand(msg)
   else if msg = "deactivate subtitles"
     m.subtitler.deactivate()
     return {status: 0, message: "Deactivated subtitles"}
+  else if msg = "update timeline"
+    m.timelineManager.fetchEvents()
+    return {status: 0, message: "Updated Events!"}
   else if msg = "flash" or msg = "update scripts" or msg = "updateScripts" then
     m.updateScripts()
     ' Exits script
@@ -783,6 +800,7 @@ function runMachines()
     m.sync()
     m.subtitler.update()
     m.gpioHandler.handle()
+    m.timelineManager.update()
     m.firmwareCMS()
     m.contentCMS()
     m.configPoller()
@@ -924,6 +942,33 @@ function postToLog(message)
   
 end function
 
+function handleRawOrCommand(line) 
+  ' TODO: figure out why all hese sleeps are necessary
+  print "Code type:", line.type
+  print "Code to inject", line.code
+  if line.type = "command" then
+    responseData = m.handleCommand(line.code)
+    sleep(500)
+    m.postToLog(responseData.message)
+    sleep(500)
+  else if line.type = "raw" then
+    results = eval(line.code)
+    sleep(500)
+    if type(results) = "roList" then
+      for each result in results
+        m.postToLog("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
+        sleep(500)
+        print("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
+      end for
+
+    else
+      m.postToLog("Executed code with status: "+results.toStr())
+      print("Executed code with status code: " + results.toStr())
+    end if
+  end if
+  sleep(500)
+end function
+
 function injectionPoller()
   ' subtitle state polling engine
   ' TODO: line below bugs out when not provisioned
@@ -939,29 +984,7 @@ function injectionPoller()
             if msg.getResponseCode() = 200 then
               codeToInject = ParseJSON(msg.getString())
               for each line in codeToInject
-                print "Code type:", line.type
-                print "Code to inject", line.code
-                if line.type = "command" then
-                  responseData = m.handleCommand(line.code)
-                  sleep(500)
-                  m.postToLog(responseData.message)
-                  sleep(500)
-                else if line.type = "raw" then
-                  results = eval(line.code)
-                  sleep(500)
-                  if type(results) = "roList" then
-                    for each result in results
-                      m.postToLog("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
-                      sleep(500)
-                      print("Executed code with status: "+result.ERRNO.toStr()+" ("+result.ERRSTR+")")
-                    end for
-
-                  else
-                    m.postToLog("Executed code with status: "+results.toStr())
-                    print("Executed code with status code: " + results.toStr())
-                  end if
-                end if
-                sleep(500)
+                m.handleRawOrCommand(line)
               end for
             end if
             m.injectionPollingState="waitingToPoll"
