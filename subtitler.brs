@@ -79,7 +79,6 @@ function fetchSubtitles()
     if res <> invalid then
       if res.getResponseCode() = 200 then
         data = parseJSON(res.getString())
-        ' TODO: Check if subtitls are 
         if data.work <> invalid
           if data.work.parsedSrts <> invalid
             if data.work.parsedSrts.count() = 0
