@@ -50,6 +50,17 @@ jobs:
         id: "automatic-release-tag"
 
       - uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{github.event_name == 'pull_request'}}
+        with:
+          automatic_release_tag: '${{github.ref_name}}'
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          files: |
+            autorun.zip
+            ak.features.json
+        id: "automatic-release-pull"
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
         if: ${{github.ref_type == 'branch'}}
         with:
           automatic_release_tag: 'latest'
