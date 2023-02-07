@@ -17,15 +17,30 @@ jobs:
         with:
           lfs: true
           fetch-depth: 0
+        
+      
+      - name: Zip Release
+        uses: TheDoctor0/zip-release@0.7.1
+        with:
+          filename: autorun.zip
+          # List of excluded files / directories
+          exclusions: |
+            configScripts
+            deploy
+            .github
+            .gitignore
+            README.md
+            audio.json
+            config.json
+            network.json
+            video.json
+            window.json
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           files: |
-            *.brs
-            init.json
-            subtitles.json
-            subtitles.html
-            subtitls.css
+            autorun.zip
         id: "automatic-release"
+
