@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - "master"
 
 jobs:
   tagged-release:
@@ -25,7 +27,7 @@ jobs:
           filename: autorun.zip
           # List of excluded files / directories
           exclusions: |
-            *configScripts*
+            ./configScripts/*
             *.git*
             .gitignore
             README.md
@@ -37,6 +39,18 @@ jobs:
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
+          if: ${{github.ref_type == 'tag'}}
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            autorun.zip
+        id: "automatic-release"
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          if: ${{github.ref_type == 'branch'}}
+          automatic_release_tag: 'latest'
+          title: "Latest Development Build"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           files: |
