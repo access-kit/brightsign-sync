@@ -824,26 +824,51 @@ function updateScripts()
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  request.setUrl("https://api.github.com/repos/szvsw/brightSignMediaSync/git/trees/master?recursive=1")
-  request.asyncGetToString()
-  msg = resPort.waitMessage(2000)
-  data = ParseJSON(msg.getString()).tree
-  for each entry in data
-    path = entry.path
-    if path.inStr("/") = -1 then
-      if path.right(3) = "brs" or path="init.json" or path.left(9) = "subtitles" then
-        print("Downloading "+path+"...")
-        request.setUrl(m.config.firmwareUrl + "/"+path)
-        request.asyncGetToFile(path)
-        resPort.waitMessage(3000)
 
+  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/releases/tags/latest")
+  data = ParseJson(msg.getSring())
+  assets = data.assets
+  success = false
+  for each 
+    if asset.name = "autorun.zip"
+      request.asyncGetToFile(path)
+      resPort.waitMessage(3000)
+      if CheckFile("SD:/autorun.zip")
+        package = CreateObject("roBrightPackage", "SD:/autorun.zip")
+        ' unzip to temp dir to avoid deleting media content in root
+        ' TODO: migrate to using brightsign asset pool etc
+        temp_dir_path = "SD:/ak_temp"
+        CreateDirectory(temp_dir_path)
+        package.SetPassword("test") ' Password ignored
+        package.Unpack(temp_dir_path)
+        files = ListDir(temp_dir_path)
+        for each file in paths
+          ' TODO: Check if this delete is necessary
+          DeleteFile("SD:/"+file)
+          MoveFile(temp_dir_path+file, "SD:/"+file)
+        end for
+        package = 0
+        DeleteDirectory(temp_dir_path)
+        DeleteFile("SD:/autorun.zip")
+        success = true
+      else 
+        tf99.cls()
+        tf99.sendBlock("Found the package, but failed to download new scripts.")
+        sleep(3000)
       end if
+      EXIT FOR
     end if
   end for
-  tf99.cls()
-  tf99.sendBlock("Done downloading scripts... will now reboot.")
-  sleep(3000)
-  RebootSystem()
+  if success
+    tf99.cls()
+    tf99.sendBlock("Done downloading scripts... will now reboot.")
+    sleep(3000)
+    RebootSystem()
+  else
+    tf99.cls()
+    tf99.sendBlock("Failed to download scripts... please try again")
+    sleep(3000)
+  end if
 end function
 
 
