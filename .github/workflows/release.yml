@@ -27,7 +27,8 @@ jobs:
           filename: autorun.zip
           # List of excluded files / directories
           exclusions: |
-            ./configScripts/*
+            deploy*
+            configScripts*
             *.git*
             .gitignore
             README.md
