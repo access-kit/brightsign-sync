@@ -38,8 +38,8 @@ jobs:
             window.json
 
       - uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{github.ref_type == 'tag'}}
         with:
-          if: ${{github.ref_type == 'tag'}}
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           files: |
@@ -47,8 +47,8 @@ jobs:
         id: "automatic-release-tag"
 
       - uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{github.ref_type == 'branch'}}
         with:
-          if: ${{github.ref_type == 'branch'}}
           automatic_release_tag: 'latest'
           title: "Latest Development Build"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
