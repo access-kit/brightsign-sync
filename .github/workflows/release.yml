@@ -64,7 +64,7 @@ jobs:
         id: "automatic-release-pull"
 
       - uses: "marvinpinto/action-automatic-releases@latest"
-        if: ${{github.ref_type == 'branch'}}
+        if: ${{github.ref_type == 'branch' && !github.event_name == 'pull_request'}}
         with:
           automatic_release_tag: 'latest'
           title: "Latest Development Build"
