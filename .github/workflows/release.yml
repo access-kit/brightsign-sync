@@ -7,6 +7,11 @@ on:
       - "v*"
     branches:
       - "master"
+    pull_request:
+      types: [opened, reopened, synchronize]
+      branches:
+        - "master"
+
 
 jobs:
   tagged-release:
