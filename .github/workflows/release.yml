@@ -44,7 +44,7 @@ jobs:
           prerelease: false
           files: |
             autorun.zip
-        id: "automatic-release"
+        id: "automatic-release-tag"
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -55,5 +55,5 @@ jobs:
           prerelease: false
           files: |
             autorun.zip
-        id: "automatic-release"
+        id: "automatic-release-latest"
 
