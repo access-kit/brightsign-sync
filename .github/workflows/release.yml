@@ -55,7 +55,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         if: ${{github.event_name == 'pull_request'}}
         with:
-          automatic_release_tag: '${{github.head_ref}}'
+          automatic_release_tag: 'prerelease-${{github.head_ref}}'
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           files: |
