@@ -810,7 +810,7 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
+  ' print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -825,35 +825,46 @@ function updateScripts()
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
 
-  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/releases/tags/latest")
-  data = ParseJson(msg.getSring())
+  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/releases/tags/prerelease-use-tagged-script-updating")
+  request.asyncGetToString()
+  msg = resPort.waitMessage(3000)
+  data = ParseJson(msg.getString())
   assets = data.assets
   success = false
-  for each 
+  for each asset in assets
     if asset.name = "autorun.zip"
-      request.asyncGetToFile(path)
-      resPort.waitMessage(3000)
+      request.setUrl(asset.url)
+      request.addHeader("Accept", "application/octet-stream")
+      request.asyncGetToFile("SD:/autorun.zip")
+      dlres = resPort.waitMessage(5000)
       if CheckFile("SD:/autorun.zip")
+        print("Successfully downloaded autorun.zip")
         package = CreateObject("roBrightPackage", "SD:/autorun.zip")
         ' unzip to temp dir to avoid deleting media content in root
         ' TODO: migrate to using brightsign asset pool etc
         temp_dir_path = "SD:/ak_temp"
         CreateDirectory(temp_dir_path)
         package.SetPassword("test") ' Password ignored
+        print("Unpacking zip...")
         package.Unpack(temp_dir_path)
         files = ListDir(temp_dir_path)
-        for each file in paths
+        for each file in files
+          print("Moving file to main.")
           ' TODO: Check if this delete is necessary
+          print(file)
           DeleteFile("SD:/"+file)
           MoveFile(temp_dir_path+file, "SD:/"+file)
         end for
         package = 0
         DeleteDirectory(temp_dir_path)
         DeleteFile("SD:/autorun.zip")
+        print("Successfully unpacked all files.")
         success = true
       else 
         tf99.cls()
         tf99.sendBlock("Found the package, but failed to download new scripts.")
+        print("Failed to download the autorun.zip file from github")
+        print(dlres)
         sleep(3000)
       end if
       EXIT FOR
@@ -1026,3 +1037,12 @@ end function
 function quit()
   END
 end function
+
+Function CheckFile(path as String)
+    file = CreateObject("roReadFile", path)
+    if type(file) = "roReadFile" then
+        return true
+    end if
+
+    return false
+End Function
