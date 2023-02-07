@@ -30,6 +30,7 @@ jobs:
             deploy*
             configScripts*
             *.git*
+            ak.features.json
             .gitignore
             README.md
             audio.json
@@ -45,6 +46,7 @@ jobs:
           prerelease: false
           files: |
             autorun.zip
+            ak.features.json
         id: "automatic-release-tag"
 
       - uses: "marvinpinto/action-automatic-releases@latest"
@@ -56,5 +58,6 @@ jobs:
           prerelease: false
           files: |
             autorun.zip
+            ak.features.json
         id: "automatic-release-latest"
 
