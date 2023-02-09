@@ -810,7 +810,7 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  ' print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
+  print "Attempting to download new scripts for release "+m.config.desiredAKVersion
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -825,7 +825,7 @@ function updateScripts()
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
 
-  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/releases/tags/prerelease-use-tagged-script-updating")
+  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/releases/tags/"+m.config.desiredAKVersion)
   request.asyncGetToString()
   msg = resPort.waitMessage(3000)
   data = ParseJson(msg.getString())
@@ -873,9 +873,9 @@ function updateScripts()
   if success
     tf99.cls()
     tf99.sendBlock("Done downloading scripts... will now reboot.")
+    m.updateConfig("currentAKVersion", m.config.desiredAKVersion)
     sleep(3000)
-    ' RebootSystem()
-    END
+    RebootSystem()
   else
     tf99.cls()
     tf99.sendBlock("Failed to download scripts... please try again")
