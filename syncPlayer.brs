@@ -853,7 +853,7 @@ function updateScripts()
           ' TODO: Check if this delete is necessary
           print(file)
           DeleteFile("SD:/"+file)
-          MoveFile(temp_dir_path+file, "SD:/"+file)
+          MoveFile(temp_dir_path+"/"+file, "SD:/"+file)
         end for
         package = 0
         DeleteDirectory(temp_dir_path)
@@ -874,7 +874,8 @@ function updateScripts()
     tf99.cls()
     tf99.sendBlock("Done downloading scripts... will now reboot.")
     sleep(3000)
-    RebootSystem()
+    ' RebootSystem()
+    END
   else
     tf99.cls()
     tf99.sendBlock("Failed to download scripts... please try again")
