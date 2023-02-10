@@ -7,6 +7,9 @@ on:
       - "v*"
     branches:
       - "master"
+  pull_request:
+    types: [opened, reopened, synchronize]
+
 
 jobs:
   tagged-release:
@@ -50,12 +53,23 @@ jobs:
         id: "automatic-release-tag"
 
       - uses: "marvinpinto/action-automatic-releases@latest"
-        if: ${{github.ref_type == 'branch'}}
+        if: ${{github.event_name == 'pull_request'}}
+        with:
+          automatic_release_tag: 'prerelease-${{github.head_ref}}'
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          files: |
+            autorun.zip
+            ak.features.json
+        id: "automatic-release-pull"
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{github.ref_type == 'branch' && !github.event_name == 'pull_request'}}
         with:
           automatic_release_tag: 'latest'
           title: "Latest Development Build"
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
+          prerelease: true
           files: |
             autorun.zip
             ak.features.json
