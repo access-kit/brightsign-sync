@@ -1,7 +1,7 @@
 LIBRARY "time.brs"
-' LIBRARY "subtitler.brs"
-' LIBRARY "gpio.brs"
-' LIBRARY "timeline.brs"
+LIBRARY "subtitler.brs"
+LIBRARY "gpio.brs"
+LIBRARY "timeline.brs"
 LIBRARY "oscBuilder.brs"
 LIBRARY "oscParser.brs"
 
@@ -246,29 +246,6 @@ end function
 
 function consume()
 end function
-
-function createSubtitler(player)
-  subtitler = createObject("roAssociativeArray")
-  subtitler.update = consume
-  subtitler.fetchSubtitles = consume
-  subtitler.activate = consume
-  subtitler.deactivate = consume
-  return subtitler
-end function
-
-function createGPIOManager(player)
-  handler = createObject("roAssociativeArray")
-  handler.handle = consume
-  return handler
-end function
-
-function createTimelineManager(player)
-  timelineManager = createObject("roAssociativeArray")
-  timelineManager.update = consume
-  timelineManager.fetchEvents = consume
-  return timelineManager
-end function
-
 
 function loadVideoFile()
   print "Preloading video..."
