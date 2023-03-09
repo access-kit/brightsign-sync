@@ -46,17 +46,19 @@ function createSubtitler(parent)
   subtitler.htmlWidget = createObject("roHtmlWidget", subtitleRectangle, htmlConfig)
   loadingError = false
   while true
-    msg = subtitler.htmlPort.waitMessage(3000)
-    eventData = msg.getData()
-    if type(eventData) = "roAssociativeArray" and type(eventData.reason) = "roString" then
-      if eventData.reason = "load-error" then
-        print "=== BS: HTML load error: "; eventData.message
-        loadingError = true
-        exit while
-      else if eventData.reason = "load-finished" then
-        print "=== BS: Received load finished"
-        loadingError = false
-        exit while
+    msg = subtitler.htmlPort.waitMessage(10000)
+    if msg <> invalid 
+      eventData = msg.getData()
+      if type(eventData) = "roAssociativeArray" and type(eventData.reason) = "roString" then
+        if eventData.reason = "load-error" then
+          print "=== BS: HTML load error: "; eventData.message
+          loadingError = true
+          exit while
+        else if eventData.reason = "load-finished" then
+          print "=== BS: Received load finished"
+          loadingError = false
+          exit while
+        end if
       end if
     end if
   end while
