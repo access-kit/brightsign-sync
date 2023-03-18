@@ -653,6 +653,13 @@ end function
 function updateConfig(key, value)
   print "Received a new key:", key
   print "Received a new value:", value
+  ' TODO: Add better typesafety for other fields
+  if key = "volume"
+    value = cint(val(value))
+  end if
+  if key = "quietMode"
+    value = val(value)
+  end if
   m.config.addReplace(key,value)
   json = FormatJSON(m.config)
   print "Saving new configuration..."
@@ -663,8 +670,8 @@ function updateConfig(key, value)
   end for
   if type(value) = "roString" then
     value = value.getString()
-  else if type(value) = "Integer" then
-    value = value.toStr()
+  else if type(value) = "Integer" or type(value) = "Float" or type(value) = "Double" then
+    value = str(value)
   end if
   WriteAsciiFile("config.json", json)
   m.apiRequest.setUrl(m.apiEndpoint+"/"+key)
