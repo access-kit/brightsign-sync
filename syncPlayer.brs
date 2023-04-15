@@ -680,6 +680,8 @@ function updateConfig(key, value)
     ' handler for specific key changes
   else if key = "volume" then
     m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
+  else if key = "quietMode" then
+    m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
   end if
 end function
 
