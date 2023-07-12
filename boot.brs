@@ -101,6 +101,9 @@ function bootSetup()
       textbox.sendBlock("Setting wifi password")
       sleep(2000)
       textbox.cls()
+      if networkConfig.wifiIdentity <> invalid then
+        n.setWifiIdentity(networkConfig.wifiIdentity)
+      end if
       n.SetWiFiPassphrase(networkConfig.wifiPASS)
       networkConfig.delete("wifiPASS")
       n.apply()
@@ -342,7 +345,7 @@ function bootSetup()
     print "Checking for new configuration..."
     ' check for new config data
     configRequest = createObject("rourltransfer")
-    configRequest.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=false")
+    configRequest.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"?includeWork=true")
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
