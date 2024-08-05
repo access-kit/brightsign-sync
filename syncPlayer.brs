@@ -469,18 +469,48 @@ function handleCommand(msg)
     return {status: 0, message: "compressed video to "+m.window.getHeight().toStr()+"px tall"}
   else if msg="enlarge" then 
     _window = ParseJson(ReadAsciiFile("window.json"))
+    base_y = 0
+    base_h = 0
+    base_x = 0
+    base_w = 0
+    if _window = invalid then
+      base_y = m.window.getY()
+      base_h = m.window.getHeight()
+      base_x = m.window.getX()
+      base_w = m.window.getWidth()
+    else 
+      base_y = _window.y
+      base_h = _window.h
+      base_x = _window.x
+      base_w = _window.w
+    end if
     m.window.setHeight(m.window.getHeight() + 6)
-    m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+    m.window.setY(base_y + (base_h - m.window.getHeight())/2)
     m.window.setWidth(m.window.getHeight()*m.aspectRatio)
-    m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
+    m.window.setx(base_x + (base_w - m.window.getWidth())/2)
     m.video.setRectangle(m.window)
     return {status: 0, message: "stretched video to "+m.window.getWidth().toStr()+"x"+m.window.getHeight().toStr()}
   else if msg="shrink" then 
     _window = ParseJson(ReadAsciiFile("window.json"))
+    base_y = 0
+    base_h = 0
+    base_x = 0
+    base_w = 0
+    if _window = invalid then
+      base_y = m.window.getY()
+      base_h = m.window.getHeight()
+      base_x = m.window.getX()
+      base_w = m.window.getWidth()
+    else 
+      base_y = _window.y
+      base_h = _window.h
+      base_x = _window.x
+      base_w = _window.w
+    end if
     m.window.setHeight(m.window.getHeight() - 6)
-    m.window.setY(_window.y + (_window.h - m.window.getHeight())/2)
+    m.window.setY(base_y + (base_h - m.window.getHeight())/2)
     m.window.setWidth(m.window.getHeight()*m.aspectRatio)
-    m.window.setx(_window.x + (_window.w - m.window.getWidth())/2)
+    m.window.setx(base_x + (base_w - m.window.getWidth())/2)
     m.video.setRectangle(m.window)
     return {status: 0, message: "shrunk video to "+m.window.getWidth().toStr()+"x"+m.window.getHeight().toStr()}
   else if msg="nudgeUp" then 
