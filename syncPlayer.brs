@@ -556,6 +556,12 @@ function handleCommand(msg)
     print "Writing new window configuration to disk: ", json
     WriteAsciiFile("window.json", json)
     return {status: 0, message: "Reset picture configuration and saved new window to disk: "+json}
+  else if msg = "disableOutputs"
+    m.video.hide()
+    m.video.setVolume(0)
+  else if msg = "enableOutputs"
+    m.video.show()
+    m.video.setVolume(cint(m.config.volume*m.config.quietMode))
   else if msg = "volumeUp" then
     currentVolume = m.config.volume
     if currentVolume < 100 then
