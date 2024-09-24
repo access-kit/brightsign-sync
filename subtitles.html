@@ -45,7 +45,7 @@
               if (line.length === 0) lines.splice(index)
             })
             const subtitle = lines.join("\r\n")
-            el.textContent = subtitle
+            el.innnerHTML = subtitle
             break
           case 'clear':
             el.textContent = ''
