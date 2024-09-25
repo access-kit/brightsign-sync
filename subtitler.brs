@@ -6,9 +6,9 @@ function createSubtitler(parent)
   videoMode = createObject("roVideoMode")
   widthFraction = 0.8
   xAnchor = videoMode.getSafeX()+videoMode.getSafeWidth()*(1.0-widthFraction)/2.0
-  yAnchor = videoMode.GetSafeY()+videoMode.GetSafeHeight()-170
+  yAnchor = videoMode.GetSafeY()+videoMode.GetSafeHeight()-180
   width = widthFraction*videoMode.getSafeWidth()
-  height = 160
+  height = 170
   subtitleRectangle = createObject("roRectangle",xAnchor,yAnchor,width,height)
   params = {Alignment:1, TextMode:2, PauseTime:0, LineCount:2}
 
