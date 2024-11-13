@@ -23,3 +23,11 @@ Commits to master will also be built and update the tagged release `latest`.
 If file should be excluded from the release, add them to the `exclusions` step of the `release.yml` GitHub Workflows Action.
 
 Additionally, there is a file called `ak.features.json` which should be updated with any features from the official [AccessKit build](https://github.com/access-kit/access-kit) which the BrightSign release can make use of.
+
+## Connecting via SSH
+
+`ssh brightsign@ip`
+
+or 
+
+`ssh -oHostKeyAlgorithms=+ssh-rsa brightsign@ip`
