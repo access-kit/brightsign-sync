@@ -345,8 +345,14 @@ end function
 function setupVideoWindow()
   probeData = m.video.probeFile(m.config.videoPath)
 
-  m.width = probeData.videoWidth
-  m.height = probeData.videoHeight
+  if probeData <> invalid then
+    m.width = probeData.videoWidth
+    m.height = probeData.videoHeight
+  else
+    print "Probe data invalid, using default dimensions"
+    m.width = 1920
+    m.height = 1080
+  end if
   if m.width = 0 or m.height = 0 then
     m.width = 1920
     m.height = 1080
