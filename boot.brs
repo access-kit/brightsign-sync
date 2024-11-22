@@ -207,6 +207,7 @@ function bootSetup()
   if accessKitReg.read("remoteAccessConfigured") <> "true" then
 
     textbox.SendBlock("Setting up SSH and Diagnostic Web Server.")
+    print("Setting up SSH and Diagnostic Web Server.")
     sleep(2000)
     textbox.Cls()
 
@@ -224,6 +225,7 @@ function bootSetup()
     ' regSec.Flush()
 
     textbox.SendBlock("SSH and DWS setup.  Password: syncSign.  Rebooting to flush registries... ")
+    print("SSH and DWS setup.  Password: syncSign.  Rebooting to flush registries... ")
     accessKitReg.write("remoteAccessConfigured", "true")
     accessKitReg.flush()
     registry.flush()
