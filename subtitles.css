@@ -1,8 +1,13 @@
+.subtitle-container {
+  padding: 20px 0;
+}
 #subtitle-text {
-	font-size: 70;
+  margin-top: -20px;
+  font-size: 70;
   color: white;
   text-shadow: black 2px 0px 15px;
   text-align: center;
   -webkit-text-stroke: 1px black;
   white-space: pre-line;
 }
+
