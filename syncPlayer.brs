@@ -179,6 +179,9 @@ function createSyncPlayer(_config as Object) as Object
   player.updateContent = updateContent
   player.changevideoPath = changevideoPath
   player.loadVideoFile = loadVideoFile
+  player.resumeSync = resumeSync
+  player.resync = resync
+  player.relockAndSync = relockAndSync
 
   ' Video timing fields
   player.lastCycleStartedAt = 0
@@ -389,6 +392,28 @@ function markLocalStart()
   m.lastCycleStartedAt = m.clock.getEpochAsMSString()
 end function
 
+function resync()
+  currentPlaybackPosition = m.video.getPlaybackPosition()
+  m.markLocalStart()
+  m.clock.serverTimeOffset = m.clock.serverTimeOffset - currentPlaybackPosition
+  if m.config.updateWeb = "on" then
+    m.submitTimestamp()
+  end if
+  m.clock.serverTimeOffset = m.clock.serverTimeOffset + currentPlaybackPosition
+end function
+
+function relockAndSync()
+  m.clock.blockingNTPSync()
+  m.resync()
+end function
+
+function resumeSync()
+  m.clock.blockingNTPSync()
+  m.video.resume()
+  sleep(35) 
+  m.resync()
+end function
+
 function submitTimestamp() ' as String
   m.apiRequest.setUrl(m.apiEndpoint+"/timestamp")
   postString = "password="+m.apiRequest.escape(m.password)+"&"
@@ -407,6 +432,15 @@ function handleCommand(msg)
   if msg="pause" then
     m.video.pause()
     return {status: 0, message: "paused"}
+  else if msg="resync" then
+    m.resync()
+    return {status: 0, message: "resynced timestamp"}
+  else if msg="lockResync" then
+    m.relockAndSync()
+    return {status: 0, message: "locked and resynced timestamp"}
+  else if msg="playResync" then
+    m.resumeSync()
+    return {status: 0, message: "locked, resynced and resumed"}
   else if msg="start" then
     m.transportState = "starting"
     return {status: 0, message: "starting"}
