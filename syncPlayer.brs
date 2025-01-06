@@ -346,7 +346,8 @@ function setupUDP()
 end function
 
 function setupVideoWindow()
-  probeData = m.video.probeFile(m.config.videoPath)
+
+  probeData = m.video.getStreamInfo()
 
   if probeData <> invalid then
     m.width = probeData.videoWidth
@@ -357,6 +358,10 @@ function setupVideoWindow()
     m.height = 1080
   end if
   if m.width = 0 or m.height = 0 then
+    m.width = 1920
+    m.height = 1080
+  end if
+  if m.width = invalid or m.height = invalid then
     m.width = 1920
     m.height = 1080
   end if
