@@ -147,6 +147,12 @@ function createSyncPlayer(_config as Object) as Object
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
   
+  if player.config.onScreenSubtitleActive = invalid then
+    player.config.onScreenSubtitleActive = "false"
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/onScreenSubtitleActive")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&onScreenSubtitleActive="+player.config.onScreenSubtitleActive)
+  end if
   
 
   player.firmwareCMSState = "idle"
@@ -161,6 +167,7 @@ function createSyncPlayer(_config as Object) as Object
   else 
     player.transportState = "idle"
   end if
+
 
 
   ' Give the player methods
@@ -232,6 +239,9 @@ function createSyncPlayer(_config as Object) as Object
 
   ' Create a subtitler engine
   player.subtitler = createSubtitler(player)
+  if player.config.onScreenSubtitleActive = "true" then
+    player.subtitler.activate()
+  end if
   
   ' Create GPIO Handler
   player.gpioHandler = createGPIOManager(player)
