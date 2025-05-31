@@ -2,16 +2,29 @@
 	<head>
 		<script>
       let subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
-      const getSubtitles = async (url) => {
+      const getSubtitles = async (url, shortDescriptor) => {
         try {
           console.log(`fetching subtitles from ${url}`)
+          console.log(`shortDecriptor ${shortDescriptor}`)
           const res = await fetch(url)
           const {work} = await res.json()
           if (work) {
             // TODO: error handling
             if (work.parsedSrts) {
               if (work.parsedSrts.length > 0) {
-                subtitles= work.parsedSrts[0]
+                let foundMatchingShortDescriptor = false
+                for (let i = 0; i < work.srts.length; i++) {
+                  if (work.srts[i].shortDescriptor === shortDescriptor) {
+                    subtitles = work.parsedSrts[i]
+                    foundMatchingShortDescriptor = true
+                    break
+                  }
+                }
+                if (!foundMatchingShortDescriptor) {
+                  console.warn(`No subtitles found for short descriptor: ${shortDescriptor}, falling
+                    back to 0th`)
+                  subtitles = work.parsedSrts[0]
+                }
               } else {
                 throw Error("Failed to fetch subtitles since no SRTS associated with the assigned work.")
               }
@@ -29,6 +42,7 @@
       const BS_MESSAGE_PORT = require("@brightsign/messageport")
       const port = new BS_MESSAGE_PORT()
       const listener = port.addEventListener("bsmessage", function (data) {
+        console.log(JSON.stringify(data))
         const el = document.getElementById("subtitle-text")
         switch (data.code) {
           case 'raw': 
@@ -51,7 +65,7 @@
             el.textContent = ''
             break
           case 'fetch-subtitles':
-            getSubtitles(data.url)
+            getSubtitles(data.url, data.shortdescriptor)
             break
           default:
             console.error("Unhandled bsmessage data", data)

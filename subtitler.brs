@@ -75,7 +75,12 @@ function fetchSubtitles()
   if m.enabled<>true
     m.events = createDefaultSubtitles()
   else 
-    m.htmlWidget.postJsMessage({code: "fetch-subtitles", url: m.sourceUrl})
+    ' keys must be lowercase
+    m.htmlWidget.postJsMessage({
+      code: "fetch-subtitles",
+      url: m.sourceUrl,
+      shortdescriptor: m.parent.config.onScreenSubtitlesShortDescriptor
+    })
     m.srtFetcher.asyncGetToString()
     res = m.srtResponse.waitMessage(1000)
     if res <> invalid then
@@ -87,10 +92,24 @@ function fetchSubtitles()
               m.events = createDefaultSubtitles()
               print("Found work, but no subtitles available.")
             else
-              parsedSrt = data.work.parsedSrts[0]
-              WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
-              m.events = parsedSrt
-              print("Found subtitles.")
+              parsedSrtIndex = invalid  
+              if m.parent.config.onScreenSubtitlesShortDescriptor = invalid
+                print("No short descriptor set for subtitles, using first available.")
+                parsedSrtIndex = 0
+              else
+                for cursor = 0 to data.work.srts.count() - 1
+                  if data.work.srts[cursor].shortDescriptor = m.parent.config.onScreenSubtitlesShortDescriptor then
+                    print("Using subtitles " + cursor.toStr() + ": " + data.work.srts[cursor].shortDescriptor)
+                    parsedSrtIndex = cursor
+                  end if
+                end for
+              end if
+              if parsedSrtIndex = invalid
+                print("No matching srt lang code, falling back to 0th srt.")
+                parsedSrtIndex = 0
+              end if
+              m.events = data.work.parsedSrts[parsedSrtIndex]
+              WriteAsciiFile("subtitles.json",FormatJSON(m.events))
             end if
           else
             m.events = createDefaultSubtitles()
@@ -168,6 +187,9 @@ function subtitleMachine()
 end function
 
 function activateSubtitles()
+  if m.enabled = true
+    m.fetchSubtitles()
+  end if
   if m.activationState = "inactive"
     m.htmlWidget.show()
     m.activationState = "starting" 

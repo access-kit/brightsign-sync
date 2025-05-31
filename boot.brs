@@ -349,9 +349,9 @@ function bootSetup()
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
-    msg = configResponsePort.waitMessage(3000)
+    msg = configResponsePort.waitMessage(10000)
     if type(msg) <> "roUrlEvent" then 
-      print "Could not connect to Access Kit service.  Connection timed out (3s)."
+      print "Could not connect to Access Kit service.  Connection timed out (10s)."
       ' Internet could not connect for some reason
     else if msg.getResponseCode() <> 200 then
       ' Handle resource not found
