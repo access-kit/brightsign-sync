@@ -288,7 +288,7 @@ function bootSetup()
   print "BrightSign IP Address:", currentIP
   print "BrightSign Mac Address:", macAddress
   print "BrightSign Hostname:", currentHostname
-  print "Checking Access-Kit provisioning status..."
+  print "Checking AccessKit provisioning status..."
 
   if accessKitReg.exists("id") then
     id = accessKitReg.read("id").toInt()

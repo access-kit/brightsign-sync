@@ -73,14 +73,22 @@ end function
 
 function fetchSubtitles()
   if m.enabled<>true
+    print("Not enabled, creating default subtitles")
     m.events = createDefaultSubtitles()
   else 
     ' keys must be lowercase
-    m.htmlWidget.postJsMessage({
-      code: "fetch-subtitles",
-      url: m.sourceUrl,
-      shortdescriptor: m.parent.config.onScreenSubtitlesShortDescriptor
-    })
+    if m.parent.config.onScreenSubtitlesShortDescriptor <> invalid
+      m.htmlWidget.postJsMessage({
+        code: "fetch-subtitles",
+        url: m.sourceUrl,
+        shortdescriptor: m.parent.config.onScreenSubtitlesShortDescriptor
+      })
+    else
+      m.htmlWidget.postJsMessage({
+        code: "fetch-subtitles",
+        url: m.sourceUrl
+      })
+    end if
     m.srtFetcher.asyncGetToString()
     res = m.srtResponse.waitMessage(1000)
     if res <> invalid then

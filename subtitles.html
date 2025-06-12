@@ -5,34 +5,36 @@
       const getSubtitles = async (url, shortDescriptor) => {
         try {
           console.log(`fetching subtitles from ${url}`)
-          console.log(`shortDecriptor ${shortDescriptor}`)
+          console.log(`shortDescriptor ${shortDescriptor}`)
           const res = await fetch(url)
           const {work} = await res.json()
-          if (work) {
-            // TODO: error handling
-            if (work.parsedSrts) {
-              if (work.parsedSrts.length > 0) {
-                let foundMatchingShortDescriptor = false
-                for (let i = 0; i < work.srts.length; i++) {
-                  if (work.srts[i].shortDescriptor === shortDescriptor) {
-                    subtitles = work.parsedSrts[i]
-                    foundMatchingShortDescriptor = true
-                    break
-                  }
-                }
-                if (!foundMatchingShortDescriptor) {
-                  console.warn(`No subtitles found for short descriptor: ${shortDescriptor}, falling
-                    back to 0th`)
-                  subtitles = work.parsedSrts[0]
-                }
-              } else {
-                throw Error("Failed to fetch subtitles since no SRTS associated with the assigned work.")
-              }
-            } else {
-              throw Error("Failed to fetch subtitles because no 'parsedSrt' field in response.  API endpoint not yet upgraded.")
+          if (!work) {
+            throw Error("Failed to fetch subtitles because error fetching work associated with this media player.")
+          }
+          if (!work.parsedSrts) {
+            throw Error("Failed to fetch subtitles because no parsedSrts field in response.  API endpoint not yet upgraded.")
+          }
+          if (work.parsedSrts.length === 0) {
+            throw Error("Failed to fetch subtitles since no SRTS associated with the assigned work.")
+          }
+
+          if (!shortDescriptor) {
+            console.log("No language short descriptor set, using default first subtitle track")
+            subtitles = work.parsedSrts[0]
+            return
+          }
+          let foundMatchingShortDescriptor = false
+          for (let i = 0; i < work.srts.length; i++) {
+            if (work.srts[i].shortDescriptor === shortDescriptor) {
+              subtitles = work.parsedSrts[i]
+              foundMatchingShortDescriptor = true
+              break
             }
-          } else {
-            throw Error("Failed to fetch subtitles since no work associated with this media player.")
+          }
+          if (!foundMatchingShortDescriptor) {
+            console.warn(`No subtitles found for short descriptor: ${shortDescriptor}, falling
+                    back to 0th`)
+            subtitles = work.parsedSrts[0]
           }
         } catch (e) {
           console.error(e)
@@ -55,10 +57,8 @@
             const findLineBreaks = /<\s*br\s*\/?\s*>|&lt;?\s*br\s*\/?\s*&gt;?|\\n/
             const lines = line.split(findLineBreaks)
             // remove empty lines
-            lines.forEach((line, index) => {
-              if (line.length === 0) lines.splice(index)
-            })
-            const subtitle = lines.join("\r\n")
+            const filteredLines = lines.filter(line => line.length > 0)
+            const subtitle = filteredLines.join("\r\n")
             el.innerHTML = subtitle
             break
           case 'clear':
