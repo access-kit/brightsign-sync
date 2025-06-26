@@ -2,45 +2,6 @@
 	<head>
 		<script>
       let subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
-      const getSubtitles = async (url, shortDescriptor) => {
-        try {
-          console.log(`fetching subtitles from ${url}`)
-          console.log(`shortDescriptor ${shortDescriptor}`)
-          const res = await fetch(url)
-          const {work} = await res.json()
-          if (!work) {
-            throw Error("Failed to fetch subtitles because error fetching work associated with this media player.")
-          }
-          if (!work.parsedSrts) {
-            throw Error("Failed to fetch subtitles because no parsedSrts field in response.  API endpoint not yet upgraded.")
-          }
-          if (work.parsedSrts.length === 0) {
-            throw Error("Failed to fetch subtitles since no SRTS associated with the assigned work.")
-          }
-
-          if (!shortDescriptor) {
-            console.log("No language short descriptor set, using default first subtitle track")
-            subtitles = work.parsedSrts[0]
-            return
-          }
-          let foundMatchingShortDescriptor = false
-          for (let i = 0; i < work.srts.length; i++) {
-            if (work.srts[i].shortDescriptor === shortDescriptor) {
-              subtitles = work.parsedSrts[i]
-              foundMatchingShortDescriptor = true
-              break
-            }
-          }
-          if (!foundMatchingShortDescriptor) {
-            console.warn(`No subtitles found for short descriptor: ${shortDescriptor}, falling
-                    back to 0th`)
-            subtitles = work.parsedSrts[0]
-          }
-        } catch (e) {
-          console.error(e)
-          subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
-        }
-      }
       const BS_MESSAGE_PORT = require("@brightsign/messageport")
       const port = new BS_MESSAGE_PORT()
       const listener = port.addEventListener("bsmessage", function (data) {
@@ -54,6 +15,7 @@
             // Looks for <br/> <br> &lt; &gt; \n
             // handles whitespace in break tags
             const line =  subtitles[Math.min(Number(data.id), subtitles.length -1)].text
+            console.log(line)
             const findLineBreaks = /<\s*br\s*\/?\s*>|&lt;?\s*br\s*\/?\s*&gt;?|\\n/
             const lines = line.split(findLineBreaks)
             // remove empty lines
@@ -64,8 +26,16 @@
           case 'clear':
             el.textContent = ''
             break
-          case 'fetch-subtitles':
-            getSubtitles(data.url, data.shortdescriptor)
+          case 'load-subtitles':
+            try {
+              const parsedSubtitles = JSON.parse(data.events)
+              subtitles = parsedSubtitles
+              console.log(parsedSubtitles)
+              console.log('Loaded subtitles from file:', subtitles.length, 'entries')
+            } catch (e) {
+              console.error('Error parsing subtitles from file:', e)
+              subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
+            }
             break
           default:
             console.error("Unhandled bsmessage data", data)
