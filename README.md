@@ -11,6 +11,8 @@ Library for synchronizing BrightSign to a web server with [AccessKit](accesskit.
 
 ## Releasing
 
+Update the version in `ak.version.json` so the versions of players can be tracked.
+
 Creating and pushing a tag will automatically build a new release:
 
 ```sh
