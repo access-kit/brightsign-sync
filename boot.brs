@@ -361,7 +361,7 @@ function bootSetup()
     end if
     playerTypeReq = createObject("rourltransfer")
     playerTypeReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerType")
-    playerTypeReq.asyncPostFromString("password="+password+"&playerType=BrightSign-"+model+"-"+firmwareVersion)
+    playerTypeReq.asyncPostFromString("password="+password+"&playerType=BrightSign")
 
     print "Checking for new configuration..."
     ' check for new config data
