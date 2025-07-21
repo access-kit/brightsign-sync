@@ -1,54 +1,52 @@
 <html>
-	<head>
-		<script>
-      let subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
-      const BS_MESSAGE_PORT = require("@brightsign/messageport")
-      const port = new BS_MESSAGE_PORT()
-      const listener = port.addEventListener("bsmessage", function (data) {
-        console.log(JSON.stringify(data))
-        const el = document.getElementById("subtitle-text")
-        switch (data.code) {
-          case 'raw': 
-            el.textContent = data.text
-            break
-          case 'subtitle-index':
-            // Looks for <br/> <br> &lt; &gt; \n
-            // handles whitespace in break tags
-            const line =  subtitles[Math.min(Number(data.id), subtitles.length -1)].text
-            console.log(line)
-            const findLineBreaks = /<\s*br\s*\/?\s*>|&lt;?\s*br\s*\/?\s*&gt;?|\\n/
-            const lines = line.split(findLineBreaks)
-            // remove empty lines
-            const filteredLines = lines.filter(line => line.length > 0)
-            const subtitle = filteredLines.join("\r\n")
-            el.innerHTML = subtitle
-            break
-          case 'clear':
-            el.textContent = ''
-            break
-          case 'load-subtitles':
-            try {
-              const parsedSubtitles = JSON.parse(data.events)
-              subtitles = parsedSubtitles
-              console.log(parsedSubtitles)
-              console.log('Loaded subtitles from file:', subtitles.length, 'entries')
-            } catch (e) {
-              console.error('Error parsing subtitles from file:', e)
-              subtitles = [{id: 0, start: 0, end: 20, text: "No subtitles available."}]
-            }
-            break
-          default:
-            console.error("Unhandled bsmessage data", data)
-        }
-      })
-		</script>
-		<link rel="stylesheet" href="./subtitles.css">
-	</head>
 
-	<body>
-          <div class="subtitle-container">
-		<p id="subtitle-text"></p>
-          </div>
-	</body>
+<head>
+  <script>
+    let subtitles = [{ id: 0, start: 0, end: 20, text: "No subtitles available." }]
+    const BS_MESSAGE_PORT = require("@brightsign/messageport")
+    const port = new BS_MESSAGE_PORT()
+    const listener = port.addEventListener("bsmessage", function (data) {
+      const el = document.getElementById("subtitle-text")
+      switch (data.code) {
+        case 'raw':
+          el.textContent = data.text
+          break
+        case 'subtitle-index':
+          // Looks for <br/> <br> &lt; &gt; \n
+          // handles whitespace in break tags
+          const line = subtitles[Math.min(Number(data.id), subtitles.length - 1)].text
+          const findLineBreaks = /<\s*br\s*\/?\s*>|&lt;?\s*br\s*\/?\s*&gt;?|\\n/
+          const lines = line.split(findLineBreaks)
+          // remove empty lines
+          const filteredLines = lines.filter(line => line.length > 0)
+          const subtitle = filteredLines.join("\r\n")
+          el.innerHTML = subtitle
+          break
+        case 'clear':
+          el.textContent = ''
+          break
+        case 'load-subtitles':
+          try {
+            const parsedSubtitles = JSON.parse(data.events)
+            subtitles = parsedSubtitles
+            console.log('Loaded subtitles from file: ', subtitles.length, ' entries')
+          } catch (e) {
+            console.error('Error parsing subtitles from file:', e)
+            subtitles = [{ id: 0, start: 0, end: 20, text: "No subtitles available." }]
+          }
+          break
+        default:
+          console.error("Unhandled bsmessage data", data)
+      }
+    })
+  </script>
+  <link rel="stylesheet" href="./subtitles.css">
+</head>
+
+<body>
+  <div class="subtitle-container">
+    <p id="subtitle-text"></p>
+  </div>
+</body>
 
 </html>
