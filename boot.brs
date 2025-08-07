@@ -2,6 +2,7 @@ function bootSetup()
   textbox = createTextBox()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
   versionData = ParseJSON(ReadAsciiFile("ak.version.json"))
+  bundleVersion = versionData <> invalid ? versionData.version : "1.0"
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
     print("Exiting to shell immediately.")
@@ -287,10 +288,11 @@ function bootSetup()
   currentIP = n.getCurrentConfig().ip4_address
   macAddress = n.getCurrentConfig().ethernet_mac
   currentHostname = n.getHostName()
-  print "BrightSign Serial Number:", uniqueID
-  print "BrightSign IP Address:", currentIP
-  print "BrightSign Mac Address:", macAddress
-  print "BrightSign Hostname:", currentHostname
+  print "Serial Number:", uniqueID
+  print "IP Address:", currentIP
+  print "Mac Address:", macAddress
+  print "Hostname:", currentHostname
+  print "Bundle Version:", bundleVersion
   print "Checking AccessKit provisioning status..."
 
   if accessKitReg.exists("id") then
@@ -354,11 +356,9 @@ function bootSetup()
     macReq = createObject("rourltransfer")
     macReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
     macReq.asyncPostFromString("password="+password+"&macAddress="+macAddress)
-    if versionData <> invalid then
-      versionReq = createObject("rourltransfer")
-      versionReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/bundleVersion")
-      versionReq.asyncPostFromString("password="+password+"&bundleVersion="+versionData.version)
-    end if
+    versionReq = createObject("rourltransfer")
+    versionReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/bundleVersion")
+    versionReq.asyncPostFromString("password="+password+"&bundleVersion="+bundleVersion)
     playerTypeReq = createObject("rourltransfer")
     playerTypeReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerType")
     playerTypeReq.asyncPostFromString("password="+password+"&playerType=BrightSign")
@@ -447,7 +447,7 @@ function bootSetup()
 
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
-      textbox.SendBlock("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player. Version: "+versionData.version+". If the problem persists, please contact info@accesskit.media" )
+      textbox.SendBlock("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player. Version: "+bundleVersion+". If the problem persists, please contact info@accesskit.media" )
       sleep(4000)
       textbox.cls()
       textbox.SendBlock("The player will now startup with limited functionality.")
