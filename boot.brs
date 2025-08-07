@@ -2,7 +2,11 @@ function bootSetup()
   textbox = createTextBox()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
   versionData = ParseJSON(ReadAsciiFile("ak.version.json"))
-  bundleVersion = versionData <> invalid ? versionData.version : "1.0"
+  if versionData <> invalid then
+    bundleVersion = versionData.version
+  else
+    bundleVersion = "1.0"
+  end if
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
     print("Exiting to shell immediately.")
