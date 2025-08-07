@@ -917,7 +917,7 @@ function updateScripts()
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  request.setUrl("https://api.github.com/repos/szvsw/brightSignMediaSync/git/trees/master?recursive=1")
+  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/git/trees/master?recursive=1")
   request.asyncGetToString()
   msg = resPort.waitMessage(2000)
   data = ParseJSON(msg.getString()).tree
