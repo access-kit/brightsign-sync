@@ -1,4 +1,4 @@
-# BrightSign Media Sync
+# AccessKit Player Package for BrightSign
 
 Library for synchronizing BrightSign to a web server with [AccessKit](accesskit.media)
 
@@ -11,7 +11,7 @@ Library for synchronizing BrightSign to a web server with [AccessKit](accesskit.
 
 ## Releasing
 
-Update the version in `ak.version.json` so the versions of players can be tracked.
+Update the version in `ak.version.json` so the package versions of players can be tracked.
 
 Creating and pushing a tag will automatically build a new release:
 
