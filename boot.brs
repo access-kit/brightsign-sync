@@ -1,6 +1,12 @@
 function bootSetup()
   textbox = createTextBox()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
+  versionData = ParseJSON(ReadAsciiFile("ak.version.json"))
+  if versionData <> invalid then
+    playerPackageVersion = versionData.version
+  else
+    playerPackageVersion = "1.0"
+  end if
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
     print("Exiting to shell immediately.")
@@ -281,14 +287,17 @@ function bootSetup()
   deviceCustomization.writeSplashScreen("access-kit.png")
   deviceInfo = createObject("roDeviceInfo")
   uniqueID = deviceInfo.getDeviceUniqueID()
+  model = deviceInfo.GetModel()
+  firmwareVersion = deviceInfo.GetVersion()
   currentIP = n.getCurrentConfig().ip4_address
   macAddress = n.getCurrentConfig().ethernet_mac
   currentHostname = n.getHostName()
-  print "BrightSign Serial Number:", uniqueID
-  print "BrightSign IP Address:", currentIP
-  print "BrightSign Mac Address:", macAddress
-  print "BrightSign Hostname:", currentHostname
-  print "Checking Access-Kit provisioning status..."
+  print "Serial Number:", uniqueID
+  print "IP Address:", currentIP
+  print "Mac Address:", macAddress
+  print "Hostname:", currentHostname
+  print "Player Package Version:", playerPackageVersion
+  print "Checking AccessKit provisioning status..."
 
   if accessKitReg.exists("id") then
     id = accessKitReg.read("id").toInt()
@@ -342,6 +351,25 @@ function bootSetup()
     else
       print "syncUrl found in registry: ", syncUrl
     end if
+
+    print("Sending IP, MAC address, bundle version, and player type to AccessKit API...")
+    ' These fire and forget requests must happen the config waitMessage, or they seem to get garbage collected before firing
+    ipReq = createObject("rourltransfer")
+    ipReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
+    ipReq.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
+    macReq = createObject("rourltransfer")
+    macReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
+    macReq.asyncPostFromString("password="+password+"&macAddress="+macAddress)
+    versionReq = createObject("rourltransfer")
+    versionReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerPackageVersion")
+    versionReq.asyncPostFromString("password="+password+"&playerPackageVersion="+playerPackageVersion)
+    playerTypeReq = createObject("rourltransfer")
+    playerTypeReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerType")
+    playerTypeReq.asyncPostFromString("password="+password+"&playerType=BrightSign")
+    playerDetailsReq = createObject("rourltransfer")
+    playerDetailsReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerDetails")
+    playerDetailsReq.asyncPostFromString("password="+password+"&playerDetails="+model+"-"+firmwareVersion)
+
     print "Checking for new configuration..."
     ' check for new config data
     configRequest = createObject("rourltransfer")
@@ -349,13 +377,13 @@ function bootSetup()
     configResponsePort = createObject("roMessagePort")
     configRequest.setPort(configResponsePort)
     configRequest.asyncGetToString()
-    msg = configResponsePort.waitMessage(3000)
+    msg = configResponsePort.waitMessage(10000)
     if type(msg) <> "roUrlEvent" then 
-      print "Could not connect to Access Kit service.  Connection timed out (3s)."
+      print "Could not connect to AccessKit service.  Connection timed out (10s)."
       ' Internet could not connect for some reason
     else if msg.getResponseCode() <> 200 then
       ' Handle resource not found
-      print "Could not connect to Access Kit service.  Error code: "+msg.getResponseCode().toStr()
+      print "Could not connect to AccessKit service.  Error code: "+msg.getResponseCode().toStr()
     else 
       data = ParseJSON(msg.getString())
       if uniqueID <> data.serialNumber then
@@ -381,20 +409,12 @@ function bootSetup()
       print(data)
       ' TODO: handle any other conflicts for which the authoritative source of truth is the player
       WriteAsciiFile("config.json",formatjson(data))
-      ' Updates remote with new IP
-      print("Sending IP and MAC address to Access-Kit API...")
-      ipReq = createObject("rourltransfer")
-      ipReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/ipAddress")
-      ipReq.asyncPostFromString("password="+password+"&ipAddress="+currentIP)
-      macReq = createObject("rourltransfer")
-      macReq.setUrl(data.syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
-      macReq.asyncPostFromString("password="+password+"&macAddress="+macAddress)
     end if
   else
     ' register with access-kit
 
-    print("Attempting to connect to Access-Kit for the first time...")
-    textbox.SendBlock("Attempting to connect to Access-Kit for the first time...")
+    print("Attempting to connect to AccessKit for the first time...")
+    textbox.SendBlock("Attempting to connect to AccessKit for the first time...")
     sleep(2000)
     textbox.Cls()
 
@@ -431,7 +451,7 @@ function bootSetup()
 
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
-      textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+      textbox.SendBlock("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player. Version: "+playerPackageVersion+". If the problem persists, please contact info@accesskit.media" )
       sleep(4000)
       textbox.cls()
       textbox.SendBlock("The player will now startup with limited functionality.")
@@ -465,8 +485,8 @@ function bootSetup()
         end if
       else 
         textbox.Cls()
-        textbox.SendBlock("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
-        print("Could not connect to Access-Kit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+        textbox.SendBlock("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
+        print("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player.  If the problem persists, please contact info@accesskit.media")
         sleep(4000)
         textbox.cls()
         textbox.SendBlock("The player will now startup with limited functionality.")

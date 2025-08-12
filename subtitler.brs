@@ -6,9 +6,9 @@ function createSubtitler(parent)
   videoMode = createObject("roVideoMode")
   widthFraction = 0.8
   xAnchor = videoMode.getSafeX()+videoMode.getSafeWidth()*(1.0-widthFraction)/2.0
-  yAnchor = videoMode.GetSafeY()+videoMode.GetSafeHeight()-170
+  yAnchor = videoMode.GetSafeY()+videoMode.GetSafeHeight()-180
   width = widthFraction*videoMode.getSafeWidth()
-  height = 160
+  height = 170
   subtitleRectangle = createObject("roRectangle",xAnchor,yAnchor,width,height)
   params = {Alignment:1, TextMode:2, PauseTime:0, LineCount:2}
 
@@ -66,50 +66,74 @@ function createSubtitler(parent)
   subtitler.fetchSubtitles()
 
   print("Subtitler initialized.")
-  ' TODO: Decide the write flow for updating subtitles file
-  ' TODO: Load subtitles from file in javascript if no internet connection
   return subtitler
 end function 
 
 function fetchSubtitles()
-  if m.enabled<>true
-    m.events = createDefaultSubtitles()
+  m.events = createDefaultSubtitles()
+  if m.enabled<>true then
+    print("Not enabled, using default subtitles.")
   else 
-    m.htmlWidget.postJsMessage({code: "fetch-subtitles", url: m.sourceUrl})
     m.srtFetcher.asyncGetToString()
-    res = m.srtResponse.waitMessage(1000)
-    if res <> invalid then
-      if res.getResponseCode() = 200 then
-        data = parseJSON(res.getString())
-        if data.work <> invalid
-          if data.work.parsedSrts <> invalid
-            if data.work.parsedSrts.count() = 0
-              m.events = createDefaultSubtitles()
-              print("Found work, but no subtitles available.")
-            else
-              parsedSrt = data.work.parsedSrts[0]
-              WriteAsciiFile("subtitles.json",FormatJSON(parsedSrt))
-              m.events = parsedSrt
-              print("Found subtitles.")
-            end if
+    res = m.srtResponse.waitMessage(5000)
+    if res <> invalid and res.getResponseCode() = 200 then
+      data = ParseJSON(res.getString())
+      ' determine which subtitles to use
+      if data.work <> invalid then
+        if data.work.parsedSrts <> invalid then
+          if data.work.parsedSrts.count() = 0 then
+            print("Found work, but no subtitles available, using default subtitles.")
           else
-            m.events = createDefaultSubtitles()
-            print("Found work, but no multilingual subtitles delivered.  API endpoint not yet upgraded.")
+            parsedSrtIndex = invalid  
+            if m.parent.config.onScreenSubtitlesShortDescriptor = invalid then
+              print("No short descriptor set for subtitles, using first available.")
+              parsedSrtIndex = 0
+            else
+              for cursor = 0 to data.work.srts.count() - 1
+                if data.work.srts[cursor].shortDescriptor = m.parent.config.onScreenSubtitlesShortDescriptor then
+                  print("Using subtitles " + cursor.toStr() + ": " + data.work.srts[cursor].shortDescriptor)
+                  parsedSrtIndex = cursor
+                end if
+              end for
+            end if
+            if parsedSrtIndex = invalid then
+              print("No matching srt lang code, falling back to 0th srt.")
+              parsedSrtIndex = 0
+            end if
+            m.events = data.work.parsedSrts[parsedSrtIndex]
           end if
-        else 
-            m.events = createDefaultSubtitles()
-            print("No subitles found (no work associated with this mediaplayer)")
+        else
+          print("Found work, but no multilingual subtitles delivered.  API endpoint not yet upgraded. Using default subtitles.")
         end if
       else 
-        print("Error in request to get subtitles (possibly missing work)")
-        m.events = createDefaultSubtitles()
+          print("No subitles found (no work associated with this mediaplayer), using default subtitles.")
       end if
     else
-      print("Invalid response when fetching subtitles (possibly a network eror)")
-      m.events = createDefaultSubtitles()
+      print("Invalid response when fetching subtitles (possibly a network error or missing work).")
+      subtitleString = ReadAsciiFile("subtitles.json")
+      if subtitleString <> "" then
+          events = ParseJSON(subtitleString)
+          if events <> invalid then 
+            print("Falling back to subtitles.json saved on SD card.")
+            m.events = events 
+          else
+            print("Could not parse subtitles.json from SD card, using default subtitles.")
+          end if
+      else
+        print("Could not read subtitles.json from SD card, using default subtitles.")
+      end if
     end if
   end if
-  if m.events.count() <= m.currentIndex
+
+  ' Send subtitles to html widget and write to file in case of network loss
+  subtitleString = FormatJSON(m.events)
+  WriteAsciiFile("subtitles.json", subtitleString)
+  m.htmlWidget.postJsMessage({
+    code: "load-subtitles",
+    events: subtitleString 
+  })
+
+  if m.events.count() <= m.currentIndex then
     m.htmlWidget.hide()
     m.thresholdState = "waitingToFinishLoop"
   end if
@@ -124,12 +148,11 @@ function createDefaultSubtitles()
   event.text = "No captions available."
   parsedSrt = createObject("roArray", 1, true)
   parsedSrt.push(event)
-  WriteAsciiFile("subtitles.json", FormatJSON(parsedSrt))
   return parsedSrt
 end function
 
 function subtitleMachine()
-  if m.enabled<>true
+  if m.enabled<>true then
     return false
   end if
   if m.activationState = "starting" then
@@ -163,19 +186,23 @@ function subtitleMachine()
         ' end if
       end if
     end if
-  else if m.activationState = "inactive"
+  else if m.activationState = "inactive" then
+    ' Do nothing when inactive
   end if
 end function
 
 function activateSubtitles()
-  if m.activationState = "inactive"
+  if m.enabled = true then
+    m.fetchSubtitles()
+  end if
+  if m.activationState = "inactive" then
     m.htmlWidget.show()
     m.activationState = "starting" 
   end if
 end function
 
 function deactivateSubtitles()
-  if m.activationState <> "inactive"
+  if m.activationState <> "inactive" then
     m.htmlWidget.hide()
     m.htmlWidget.postJsMessage({code: "clear"})
     m.activationState = "inactive"
@@ -186,7 +213,7 @@ function determineCurrentIndex()
   m.currentIndex = 0
   currentTime = m.video.getPlaybackPosition()
   while m.currentIndex < m.events.count()-1
-    if currentTime < m.events[m.currentIndex].end*1000
+    if currentTime < m.events[m.currentIndex].end*1000 then
       print("Subtitles activating at index"+m.currentIndex.toStr())
       EXIT WHILE
     end if

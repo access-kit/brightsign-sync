@@ -147,6 +147,12 @@ function createSyncPlayer(_config as Object) as Object
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
   
+  if player.config.onScreenSubtitlesActive = invalid then
+    player.config.onScreenSubtitlesActive = "false"
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/onScreenSubtitlesActive")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&onScreenSubtitlesActive="+player.config.onScreenSubtitlesActive)
+  end if
   
 
   player.firmwareCMSState = "idle"
@@ -161,6 +167,7 @@ function createSyncPlayer(_config as Object) as Object
   else 
     player.transportState = "idle"
   end if
+
 
 
   ' Give the player methods
@@ -232,6 +239,9 @@ function createSyncPlayer(_config as Object) as Object
 
   ' Create a subtitler engine
   player.subtitler = createSubtitler(player)
+  if player.config.onScreenSubtitlesActive = "true" then
+    player.subtitler.activate()
+  end if
   
   ' Create GPIO Handler
   player.gpioHandler = createGPIOManager(player)
@@ -642,10 +652,10 @@ function handleCommand(msg)
     m.subtitler.fetchSubtitles()
     return {status: 0, message: "Fetched new subtitles."}
   else if msg = "activate subtitles"
-    m.subtitler.activate()
+    m.updateConfig("onScreenSubtitlesActive","true")
     return {status: 0, message: "Activated subtitles"}
   else if msg = "deactivate subtitles"
-    m.subtitler.deactivate()
+    m.updateConfig("onScreenSubtitlesActive","false")
     return {status: 0, message: "Deactivated subtitles"}
   else if msg = "update timeline"
     m.timelineManager.fetchEvents()
@@ -773,6 +783,12 @@ function updateConfig(key, value)
     m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
   else if key = "quietMode" then
     m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
+  else if key = "onScreenSubtitlesActive" then
+    if m.config.onScreenSubtitlesActive = "true" then
+      m.subtitler.activate()
+    else
+      m.subtitler.deactivate()
+    end if
   end if
 end function
 
@@ -901,7 +917,7 @@ function updateScripts()
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  request.setUrl("https://api.github.com/repos/szvsw/brightSignMediaSync/git/trees/master?recursive=1")
+  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/git/trees/master?recursive=1")
   request.asyncGetToString()
   msg = resPort.waitMessage(2000)
   data = ParseJSON(msg.getString()).tree
@@ -979,6 +995,11 @@ function configPoller()
                 m.config.addReplace(key,val)
               end while
               m.video.setVolume(cint(m.config.quietMode * m.config.volume ))
+              if m.config.onScreenSubtitlesActive = "true" then
+                m.subtitler.activate()
+              else 
+                m.subtitler.deactivate()
+              end if
               WriteAsciiFile("config.json",FormatJSON(data))
               if m.config.downloadNewContent then
                 m.updateContent() ' get new media
