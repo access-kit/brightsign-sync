@@ -3,9 +3,9 @@ function bootSetup()
   initStatus = ParseJSON(ReadAsciiFile("init.json"))
   versionData = ParseJSON(ReadAsciiFile("ak.version.json"))
   if versionData <> invalid then
-    bundleVersion = versionData.version
+    playerPackageVersion = versionData.version
   else
-    bundleVersion = "1.0"
+    playerPackageVersion = "1.0"
   end if
   ' Exit to Shell
   if initStatus.boottoshell = "true" then
@@ -296,7 +296,7 @@ function bootSetup()
   print "IP Address:", currentIP
   print "Mac Address:", macAddress
   print "Hostname:", currentHostname
-  print "Bundle Version:", bundleVersion
+  print "Player Package Version:", playerPackageVersion
   print "Checking AccessKit provisioning status..."
 
   if accessKitReg.exists("id") then
@@ -361,8 +361,8 @@ function bootSetup()
     macReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/macAddress")
     macReq.asyncPostFromString("password="+password+"&macAddress="+macAddress)
     versionReq = createObject("rourltransfer")
-    versionReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/bundleVersion")
-    versionReq.asyncPostFromString("password="+password+"&bundleVersion="+bundleVersion)
+    versionReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerPackageVersion")
+    versionReq.asyncPostFromString("password="+password+"&playerPackageVersion="+playerPackageVersion)
     playerTypeReq = createObject("rourltransfer")
     playerTypeReq.setUrl(syncUrl+"/api/mediaplayer/"+id.toStr()+"/playerType")
     playerTypeReq.asyncPostFromString("password="+password+"&playerType=BrightSign")
@@ -451,7 +451,7 @@ function bootSetup()
 
     if type(msg) <> ("roUrlEvent") then
       textbox.Cls()
-      textbox.SendBlock("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player. Version: "+bundleVersion+". If the problem persists, please contact info@accesskit.media" )
+      textbox.SendBlock("Could not connect to AccessKit provisioning service; check that the internet connection is valid and restart the player. Version: "+playerPackageVersion+". If the problem persists, please contact info@accesskit.media" )
       sleep(4000)
       textbox.cls()
       textbox.SendBlock("The player will now startup with limited functionality.")
