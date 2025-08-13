@@ -350,6 +350,35 @@ function bootSetup()
       end if
     else
       print "syncUrl found in registry: ", syncUrl
+      print "password found in registry"
+
+      localConfig= ParseJSON(ReadAsciiFile("config.json"))
+      if localConfig <> invalid then 
+        print "checking for updated syncUrl or password in config.json..."
+        configSyncUrl = localConfig.syncUrl
+        configPassword = localConfig.password
+        if configSyncUrl <> invalid and configSyncUrl <> syncUrl and configPassword <> invalid then
+            ' likely an updated package for new customer, clear registry and re-register
+            print "Updated syncUrl and password found in configuration file. Clearing registry and attempting to re-register with new subdomain."
+            textbox.sendBlock("Updated syncUrl and password found in configuration file. Clearing registry and attempting to re-register with new subdomain.")
+            sleep(3000)
+            accessKitReg.delete("provisioned")
+            accessKitReg.delete("id")
+            accessKitReg.delete("syncUrl")
+            accessKitReg.delete("password")
+            accessKitReg.flush()
+            sleep(1000)
+            RebootSystem()
+        end if
+        if configPassword <> invalid and configPassword <> password then
+            ' password has changed in config.json, update the password in registry 
+            print "Updated password found in configuration file. Updating password in registry."
+            textbox.sendBlock("Updated password found in configuration file. Updating password in registry.")
+            accessKitReg.write("password", configPassword)
+            accessKitReg.flush()
+        end if
+        print "finished checking for updated syncUrl or password"
+      end if
     end if
 
     print("Sending IP, MAC address, bundle version, and player type to AccessKit API...")

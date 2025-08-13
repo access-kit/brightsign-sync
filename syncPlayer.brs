@@ -903,7 +903,7 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
+  print "Attempting to download new package from https://api.github.com/repos/access-kit/brightsign-sync/git/trees/master..."
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -934,7 +934,7 @@ function updateScripts()
     end if
   end for
   tf99.cls()
-  tf99.sendBlock("Done downloading scripts... will now reboot.")
+  tf99.sendBlock("Done downloading package... will now reboot.")
   sleep(3000)
   RebootSystem()
 end function
