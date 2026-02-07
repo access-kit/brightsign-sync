@@ -221,9 +221,6 @@ function bootSetup()
     end if
 
     if password <> invalid then
-      accessKitReg.write("password", password)
-      accessKitReg.flush()
-
       textbox.SendBlock("Setting up SSH and Diagnostic Web Server.")
       sleep(2000)
       textbox.Cls()
