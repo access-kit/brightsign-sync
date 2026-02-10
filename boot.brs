@@ -247,7 +247,7 @@ function bootSetup()
       password = "null"
       print("No password in the config file and no password in the accesskit registry")
       textbox.sendBlock("No password was found in the configuration file or in the registry.  Please add it to the config file then reboot.")
-      sleep(3000)
+      sleep(60000)
       textbox.Cls()
     end if
   end if 
