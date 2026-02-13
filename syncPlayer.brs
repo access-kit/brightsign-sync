@@ -756,10 +756,18 @@ function updateConfig(key, value)
   print "Received a new value:", value
   ' TODO: Add better typesafety for other fields
   if key = "volume"
-    value = cint(val(value))
+    if type(value) = "roString" or type(value) = "String"
+      value = cint(val(value))
+    else
+      value = cint(value)
+    end if
   end if
   if key = "quietMode"
-    value = val(value)
+    if type(value) = "roString" or type(value) = "String"
+      value = val(value)
+    else
+      value = int(value)
+    end if
   end if
   m.config.addReplace(key,value)
   json = FormatJSON(m.config)
