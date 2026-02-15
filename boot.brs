@@ -40,7 +40,7 @@ function bootSetup()
       print("will attempt to use wifi in boot loop")
     else
       textbox.sendBlock("Will attempt to use WiFi in boot loop...")
-      sleep(1000)
+      sleep(2000)
       textbox.cls()
     end if
     n = CreateObject("roNetworkConfiguration", 1)
@@ -49,7 +49,7 @@ function bootSetup()
       print("will attempt to use ethernet in boot loop")
     else
       textbox.sendBlock("Will attempt to use Ethernet in boot loop...")
-      sleep(1000)
+      sleep(2000)
       textbox.cls()
     end if
     n = CreateObject("roNetworkConfiguration", 0)
@@ -471,7 +471,7 @@ function bootSetup()
         accessKitReg.write("provisioned","true")
         accessKitReg.flush()
         registry.flush()
-        textbox.SendBlock("Succesfully registered!  Player ID: "+data.id.toStr())
+        textbox.SendBlock("Successfully registered!  Player ID: "+data.id.toStr())
         sleep(7000)
         textbox.Cls()
         if n.getHostName() <> data.nickname+"-"+data.id.toStr() then
@@ -514,12 +514,66 @@ function bootSetup()
 end function
 
 function createTextBox()
-  if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
-  textboxConfig = createObject("roAssociativeArray")
-  textboxConfig.AddReplace("CharWidth", 30)
-  textboxConfig.AddReplace("CharHeight", 50)
-  textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
-  textboxConfig.AddReplace("TextColor", &Hffffff) ' White
-  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 4, textboxConfig)
+  videoMode = createObject("roVideoMode")
+  safeX = videoMode.getSafeX()
+  safeY = videoMode.getSafeY()
+  safeWidth = videoMode.getSafeWidth()
+  safeHeight = videoMode.getSafeHeight()
+  
+  ' Logo using roImageWidget
+  logoWidth = 200
+  logoHeight = 100
+  logoX = safeX + (safeWidth - logoWidth) / 2.0
+  logoY = safeY + (safeHeight / 2.0) - 180
+  logoRect = createObject("roRectangle", logoX, logoY, logoWidth, logoHeight)
+  logoWidget = createObject("roImageWidget", logoRect)
+  logoWidget.SetDefaultMode(1)
+  logoWidget.DisplayFile("access-kit.jpg")
+  logoWidget.Show()
+  
+  ' HTML widget
+  width = 0.8 * safeWidth
+  height = 300
+  xAnchor = safeX + (safeWidth - width) / 2.0
+  yAnchor = safeY + (safeHeight / 2.0) - 80
+  rect = createObject("roRectangle", xAnchor, yAnchor, width, height)
+  
+  htmlPort = createObject("roMessagePort")
+  htmlConfig = {
+    url: "file:/SD:/displaymsg.html",
+    port: htmlPort,
+    brightsign_js_objects_enabled: true,
+    nodejs_enabled: true
+  }
+  html = createObject("roHtmlWidget", rect, htmlConfig)
+  
+  ' Wait for initial load
+  while true
+    msg = htmlPort.waitMessage(10000)
+    if msg <> invalid 
+      eventData = msg.getData()
+      if type(eventData) = "roAssociativeArray" and type(eventData.reason) = "roString" then
+        if eventData.reason = "load-error" or eventData.reason = "load-finished" then
+          exit while
+        end if
+      end if
+    end if
+  end while
+  
+  textbox = CreateObject("roAssociativeArray")
+  textbox.html = html
+  textbox.logo = logoWidget
+  textbox.sendBlock = sendHtmlBlock
+  textbox.cls = clearHtmlBlock
+  
   return textbox
+end function
+
+function sendHtmlBlock(message as String)
+  m.html.show()
+  m.html.postJsMessage({code: "raw", text: message})
+end function
+
+function clearHtmlBlock()
+  m.html.postJsMessage({code: "clear"})
 end function
