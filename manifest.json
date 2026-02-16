@@ -1,0 +1,19 @@
+{
+  "files": [
+    "autorun.brs",
+    "autozip.brs",
+    "boot.brs",
+    "gpio.brs",
+    "oscBuilder.brs",
+    "oscParser.brs",
+    "subtitler.brs",
+    "syncPlayer.brs",
+    "time.brs",
+    "timeline.brs",
+    "subtitles.css",
+    "subtitles.html",
+    "init.json",
+    "ak.features.json",
+    "ak.version.json"
+  ]
+}

@@ -911,31 +911,53 @@ function updateScripts()
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
-  tf99.SendBlock("Downloading new scripts.")
-  sleep(2000)
+  tf99.SendBlock("Downloading updates...")
+  sleep(1000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/git/trees/master?recursive=1")
-  request.asyncGetToString()
-  msg = resPort.waitMessage(2000)
-  data = ParseJSON(msg.getString()).tree
-  for each entry in data
-    path = entry.path
-    if path.inStr("/") = -1 then
-      if path.right(3) = "brs" or path="init.json" or path.left(9) = "subtitles" then
-        print("Downloading "+path+"...")
-        request.setUrl(m.config.firmwareUrl + "/"+path)
-        request.asyncGetToFile(path)
-        resPort.waitMessage(3000)
-
-      end if
-    end if
+  
+  ' Download the manifest to know which files to fetch
+  print "Downloading manifest..."
+  request.setUrl(m.config.firmwareUrl + "/manifest.json")
+  request.asyncGetToFile("manifest.json.tmp")
+  msg = resPort.waitMessage(5000)
+  if msg = invalid or msg.getResponseCode() <> 200 then
+    print "Failed to download manifest, aborting update"
+    tf99.cls()
+    tf99.sendBlock("Update failed: could not download manifest")
+    sleep(3000)
+    return
+  end if
+  
+  ' Parse the manifest
+  manifestData = ParseJSON(ReadAsciiFile("manifest.json.tmp"))
+  DeleteFile("manifest.json.tmp")
+  if manifestData = invalid or manifestData.files = invalid then
+    print "Failed to parse manifest, aborting update"
+    tf99.cls()
+    tf99.sendBlock("Update failed: invalid manifest")
+    sleep(3000)
+    return
+  end if
+  
+  ' Download each file listed in the manifest
+  totalFiles = manifestData.files.count()
+  currentFile = 0
+  for each filename in manifestData.files
+    currentFile = currentFile + 1
+    print "Downloading ("+currentFile.toStr()+"/"+totalFiles.toStr()+"): "+filename
+    tf99.cls()
+    tf99.sendBlock("Downloading "+currentFile.toStr()+"/"+totalFiles.toStr()+": "+filename)
+    request.setUrl(m.config.firmwareUrl + "/" + filename)
+    request.asyncGetToFile(filename)
+    resPort.waitMessage(10000)
   end for
+  
   tf99.cls()
-  tf99.sendBlock("Done downloading scripts... will now reboot.")
-  sleep(3000)
+  tf99.sendBlock("Update complete. Rebooting...")
+  sleep(2000)
   RebootSystem()
 end function
 
