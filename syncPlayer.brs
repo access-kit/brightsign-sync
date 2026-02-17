@@ -923,42 +923,48 @@ function updateScripts()
   request.setUrl(m.config.firmwareUrl + "/manifest.json")
   request.asyncGetToFile("manifest.json.tmp")
   msg = resPort.waitMessage(5000)
+  updateSuccess = true
+  
   if msg = invalid or msg.getResponseCode() <> 200 then
     print "Failed to download manifest, aborting update"
     tf99.cls()
     tf99.sendBlock("Update failed: could not download manifest")
     sleep(3000)
-    return
+    updateSuccess = false
   end if
   
-  ' Parse the manifest
-  manifestData = ParseJSON(ReadAsciiFile("manifest.json.tmp"))
-  DeleteFile("manifest.json.tmp")
-  if manifestData = invalid or manifestData.files = invalid then
-    print "Failed to parse manifest, aborting update"
-    tf99.cls()
-    tf99.sendBlock("Update failed: invalid manifest")
-    sleep(3000)
-    return
+  if updateSuccess then
+    ' Parse the manifest
+    manifestData = ParseJSON(ReadAsciiFile("manifest.json.tmp"))
+    DeleteFile("manifest.json.tmp")
+    if manifestData = invalid or manifestData.files = invalid then
+      print "Failed to parse manifest, aborting update"
+      tf99.cls()
+      tf99.sendBlock("Update failed: invalid manifest")
+      sleep(3000)
+      updateSuccess = false
+    end if
   end if
   
-  ' Download each file listed in the manifest
-  totalFiles = manifestData.files.count()
-  currentFile = 0
-  for each filename in manifestData.files
-    currentFile = currentFile + 1
-    print "Downloading ("+currentFile.toStr()+"/"+totalFiles.toStr()+"): "+filename
+  if updateSuccess then
+    ' Download each file listed in the manifest
+    totalFiles = manifestData.files.count()
+    currentFile = 0
+    for each filename in manifestData.files
+      currentFile = currentFile + 1
+      print "Downloading ("+currentFile.toStr()+"/"+totalFiles.toStr()+"): "+filename
+      tf99.cls()
+      tf99.sendBlock("Downloading "+currentFile.toStr()+"/"+totalFiles.toStr()+": "+filename)
+      request.setUrl(m.config.firmwareUrl + "/" + filename)
+      request.asyncGetToFile(filename)
+      resPort.waitMessage(10000)
+    end for
+    
     tf99.cls()
-    tf99.sendBlock("Downloading "+currentFile.toStr()+"/"+totalFiles.toStr()+": "+filename)
-    request.setUrl(m.config.firmwareUrl + "/" + filename)
-    request.asyncGetToFile(filename)
-    resPort.waitMessage(10000)
-  end for
-  
-  tf99.cls()
-  tf99.sendBlock("Update complete. Rebooting...")
-  sleep(2000)
-  RebootSystem()
+    tf99.sendBlock("Update complete. Rebooting...")
+    sleep(2000)
+    RebootSystem()
+  end if
 end function
 
 
