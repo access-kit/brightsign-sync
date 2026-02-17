@@ -912,7 +912,7 @@ function updateScripts()
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
   tf99.SendBlock("Downloading updates...")
-  sleep(1000)
+  sleep(2000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
@@ -923,17 +923,17 @@ function updateScripts()
   request.setUrl(m.config.firmwareUrl + "/manifest.json")
   request.asyncGetToFile("manifest.json.tmp")
   msg = resPort.waitMessage(5000)
-  updateSuccess = true
+  manifestReady = true
   
   if msg = invalid or msg.getResponseCode() <> 200 then
     print "Failed to download manifest, aborting update"
     tf99.cls()
     tf99.sendBlock("Update failed: could not download manifest")
     sleep(3000)
-    updateSuccess = false
+    manifestReady = false
   end if
   
-  if updateSuccess then
+  if manifestReady then
     ' Parse the manifest
     manifestData = ParseJSON(ReadAsciiFile("manifest.json.tmp"))
     DeleteFile("manifest.json.tmp")
@@ -942,11 +942,11 @@ function updateScripts()
       tf99.cls()
       tf99.sendBlock("Update failed: invalid manifest")
       sleep(3000)
-      updateSuccess = false
+      manifestReady = false
     end if
   end if
   
-  if updateSuccess then
+  if manifestReady then
     ' Download each file listed in the manifest
     totalFiles = manifestData.files.count()
     currentFile = 0

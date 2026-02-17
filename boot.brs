@@ -542,28 +542,38 @@ function createTextBox()
   }
   html = createObject("roHtmlWidget", rect, htmlConfig)
 
-  ' Wait for load; fall back to roTextField on error/timeout
+  ' Wait for load
   msg = htmlPort.waitMessage(10000)
   if msg <> invalid then
     eventData = msg.getData()
-    if not (type(eventData) = "roAssociativeArray" and type(eventData.reason) = "roString" and eventData.reason = "load-error") then
-      textbox = CreateObject("roAssociativeArray")
-      textbox.html = html
-      textbox.logo = logoWidget
-      textbox.sendBlock = sendHtmlBlock
-      textbox.cls = clearHtmlBlock
-      return textbox
-    end if
+    if type(eventData) = "roAssociativeArray" then 
+      if eventData.reason = "load-started" then
+        msg = htmlPort.waitMessage(10000)
+        if msg <> invalid then eventData = msg.getData()
+      end if
+      if eventData.reason = "load-finished" then
+        textbox = CreateObject("roAssociativeArray")
+        textbox.html = html
+        textbox.logo = logoWidget
+        textbox.sendBlock = sendHtmlBlock
+        textbox.cls = clearHtmlBlock
+        return textbox
+      end if
+    end if 
   end if
 
   ' Fallback to roTextField
+  html.Hide()
+  html = invalid
   if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
   textboxConfig = createObject("roAssociativeArray")
   textboxConfig.AddReplace("CharWidth", 30)
   textboxConfig.AddReplace("CharHeight", 50)
   textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
   textboxConfig.AddReplace("TextColor", &Hffffff) ' White
-  return CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 4, textboxConfig)
+  textbox = CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 4, textboxConfig)
+  textbox.raise()
+  return textbox
 end function
 
 function sendHtmlBlock(message as String)
