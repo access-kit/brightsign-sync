@@ -12,6 +12,9 @@
     "timeline.brs",
     "subtitles.css",
     "subtitles.html",
+    "displaymsg.css",
+    "displaymsg.html",
+    "access-kit.jpg",
     "init.json",
     "ak.features.json",
     "ak.version.json"

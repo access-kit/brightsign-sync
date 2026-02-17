@@ -499,14 +499,6 @@ function bootSetup()
     end if
   end if
 
-
-
-
-
-
-
-
-
   if shouldReboot then
     RebootSystem()
   end if
@@ -519,25 +511,28 @@ function createTextBox()
   safeY = videoMode.getSafeY()
   safeWidth = videoMode.getSafeWidth()
   safeHeight = videoMode.getSafeHeight()
-  
-  ' Logo using roImageWidget
-  logoWidth = 200
-  logoHeight = 100
-  logoX = safeX + (safeWidth - logoWidth) / 2.0
-  logoY = safeY + (safeHeight / 2.0) - 180
-  logoRect = createObject("roRectangle", logoX, logoY, logoWidth, logoHeight)
-  logoWidget = createObject("roImageWidget", logoRect)
-  logoWidget.SetDefaultMode(1)
-  logoWidget.DisplayFile("access-kit.jpg")
-  logoWidget.Show()
-  
+
+  ' Logo (only if file exists)
+  logoWidget = invalid
+  if MatchFiles("/", "access-kit.jpg").count() > 0 then
+    logoWidth = 200
+    logoHeight = 100
+    logoX = safeX + (safeWidth - logoWidth) / 2.0
+    logoY = safeY + (safeHeight / 2.0) - 180
+    logoRect = createObject("roRectangle", logoX, logoY, logoWidth, logoHeight)
+    logoWidget = createObject("roImageWidget", logoRect)
+    logoWidget.SetDefaultMode(1)
+    logoWidget.DisplayFile("access-kit.jpg")
+    logoWidget.Show()
+  end if
+
   ' HTML widget
   width = 0.8 * safeWidth
   height = 300
   xAnchor = safeX + (safeWidth - width) / 2.0
   yAnchor = safeY + (safeHeight / 2.0) - 80
   rect = createObject("roRectangle", xAnchor, yAnchor, width, height)
-  
+
   htmlPort = createObject("roMessagePort")
   htmlConfig = {
     url: "file:/SD:/displaymsg.html",
@@ -546,27 +541,29 @@ function createTextBox()
     nodejs_enabled: true
   }
   html = createObject("roHtmlWidget", rect, htmlConfig)
-  
-  ' Wait for initial load
-  while true
-    msg = htmlPort.waitMessage(10000)
-    if msg <> invalid 
-      eventData = msg.getData()
-      if type(eventData) = "roAssociativeArray" and type(eventData.reason) = "roString" then
-        if eventData.reason = "load-error" or eventData.reason = "load-finished" then
-          exit while
-        end if
-      end if
+
+  ' Wait for load; fall back to roTextField on error/timeout
+  msg = htmlPort.waitMessage(10000)
+  if msg <> invalid then
+    eventData = msg.getData()
+    if not (type(eventData) = "roAssociativeArray" and type(eventData.reason) = "roString" and eventData.reason = "load-error") then
+      textbox = CreateObject("roAssociativeArray")
+      textbox.html = html
+      textbox.logo = logoWidget
+      textbox.sendBlock = sendHtmlBlock
+      textbox.cls = clearHtmlBlock
+      return textbox
     end if
-  end while
-  
-  textbox = CreateObject("roAssociativeArray")
-  textbox.html = html
-  textbox.logo = logoWidget
-  textbox.sendBlock = sendHtmlBlock
-  textbox.cls = clearHtmlBlock
-  
-  return textbox
+  end if
+
+  ' Fallback to roTextField
+  if type(vm) <> "roVideoMode" then vm = CreateObject("roVideoMode")
+  textboxConfig = createObject("roAssociativeArray")
+  textboxConfig.AddReplace("CharWidth", 30)
+  textboxConfig.AddReplace("CharHeight", 50)
+  textboxConfig.AddReplace("BackgroundColor", &H000000) ' Black
+  textboxConfig.AddReplace("TextColor", &Hffffff) ' White
+  return CreateObject("roTextField", vm.GetSafeX()+10, vm.GetSafeY()+vm.GetSafeHeight()/2, 60, 4, textboxConfig)
 end function
 
 function sendHtmlBlock(message as String)
