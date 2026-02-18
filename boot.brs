@@ -211,30 +211,46 @@ function bootSetup()
 
   ' SSH and DWS
   if accessKitReg.read("remoteAccessConfigured") <> "true" then
+    localConfig = ParseJSON(ReadAsciiFile("config.json"))
+    if localConfig <> invalid then
+      password = localConfig.password
+    else
+      if accessKitReg.exists("password") then
+        password = accessKitReg.read("password")
+      end if
+    end if
 
-    textbox.SendBlock("Setting up SSH and Diagnostic Web Server.")
-    sleep(2000)
-    textbox.Cls()
+    if password <> invalid then
+      textbox.SendBlock("Setting up SSH and Diagnostic Web Server.")
+      sleep(2000)
+      textbox.Cls()
 
-    reg = CreateObject("roRegistrySection", "networking")
-    reg.write("ssh","22")
+      reg = CreateObject("roRegistrySection", "networking")
+      reg.write("ssh","22")
 
-    n.SetLoginPassword("syncSign")
-    n.SetupDWS({open:"syncSign"})
+      n.SetLoginPassword(password)
+      n.SetupDWS({open:password})
 
-    n.Apply()
+      n.Apply()
 
+      ' regSec = CreateObject("roRegistrySection", "networking")
+      ' regSec.Write("ptp_domain", "0")
+      ' regSec.Flush()
 
-    ' regSec = CreateObject("roRegistrySection", "networking")
-    ' regSec.Write("ptp_domain", "0")
-    ' regSec.Flush()
-
-    textbox.SendBlock("SSH and DWS setup.  Password: syncSign.  Rebooting to flush registries... ")
-    accessKitReg.write("remoteAccessConfigured", "true")
-    accessKitReg.flush()
-    registry.flush()
-    sleep(4000)
-    shouldReboot = true
+      textbox.SendBlock("SSH and DWS setup.  Password: "+password+".  Rebooting to flush registries... ")
+      accessKitReg.write("remoteAccessConfigured", "true")
+      accessKitReg.flush()
+      registry.flush()
+      sleep(4000)
+      shouldReboot = true
+    else
+      password = "null"
+      print("No password in the config file and no password in the accesskit registry")
+      textbox.sendBlock("No password was found in the configuration file or in the registry.  Please add it to the config file then reboot.")
+      while true
+        sleep(60000)
+      end while
+    end if
   end if 
 
   if shouldReboot then
