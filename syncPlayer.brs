@@ -196,13 +196,11 @@ function createSyncPlayer(_config as Object) as Object
 
   ' Screen resolution settings
   player.videoMode = CreateObject("roVideoMode")
-  if ParseJSON(readasciifile("video.json")) <> invalid then 
-    videoSettings = ParseJSON(ReadAsciiFile("video.json"))
-    if player.videoMode.getMode() <> videoSettings.mode then
-      player.videoMode.setMode(videoSettings.mode)
-      RebootSystem()
-    else 
-      player.videoMode.setMode(videoSettings.mode)
+  videoSettings = ParseJSON(ReadAsciiFile("video.json"))
+  if videoSettings <> invalid and videoSettings.mode <> invalid then
+    if player.videoMode.setMode(videoSettings.mode) = false then
+      print "Invalid video mode '" + videoSettings.mode + "': " + player.videoMode.getFailureReason() + ". Falling back to auto."
+      player.videoMode.setMode("auto")
     end if
   else 
     player.videoMode.setMode("auto")
@@ -1095,6 +1093,7 @@ function injectionPoller()
     end if
   end if
 end function
+
 
 function quit()
   END
