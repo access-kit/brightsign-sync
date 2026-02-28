@@ -903,7 +903,9 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Requesting firmware update from "+m.config.firmwareUrl+"/..."
+  
+  zipUrl = m.config.syncUrl + "/api/firmware/download?tag=" + m.config.firmwareTag
+  print "Downloading firmware from " + zipUrl
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -911,62 +913,24 @@ function updateScripts()
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
-  tf99.SendBlock("Checking for updates...")
+  tf99.SendBlock("Downloading update...")
   sleep(1000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
   
-  ' Fetch metadata to get the zip URL and version
-  print "Fetching firmware metadata..."
-  request.setUrl(m.config.firmwareUrl + "/metadata.json")
-  request.asyncGetToString()
-  msg = resPort.waitMessage(10000)
+  request.setUrl(zipUrl)
+  request.asyncGetToFile("autorun.zip.tmp")
+  msg = resPort.waitMessage(120000)
   updateSuccess = true
   
   if msg = invalid or msg.getResponseCode() <> 200 then
-    print "Failed to fetch firmware metadata, aborting update"
+    print "Failed to download firmware zip"
     tf99.cls()
-    tf99.sendBlock("Update failed: could not contact server")
+    tf99.sendBlock("Update failed: download error")
     sleep(3000)
     updateSuccess = false
-  end if
-  
-  zipUrl = ""
-  firmwareVersion = ""
-  if updateSuccess then
-    firmwareData = ParseJSON(msg.getString())
-    if firmwareData = invalid or firmwareData.zipUrl = invalid then
-      print "Failed to parse firmware metadata, aborting update"
-      tf99.cls()
-      tf99.sendBlock("Update failed: invalid response")
-      sleep(3000)
-      updateSuccess = false
-    else
-      zipUrl = firmwareData.zipUrl
-      firmwareVersion = firmwareData.version
-      print "Firmware version: " + firmwareVersion
-      print "Zip URL: " + zipUrl
-    end if
-  end if
-  
-  if updateSuccess then
-    tf99.cls()
-    tf99.sendBlock("Downloading firmware v" + firmwareVersion + "...")
-    print "Downloading firmware zip..."
-    
-    request.setUrl(zipUrl)
-    request.asyncGetToFile("autorun.zip.tmp")
-    msg = resPort.waitMessage(120000) ' 2 minute timeout for zip download
-    
-    if msg = invalid or msg.getResponseCode() <> 200 then
-      print "Failed to download firmware zip"
-      tf99.cls()
-      tf99.sendBlock("Update failed: download error")
-      sleep(3000)
-      updateSuccess = false
-    end if
   end if
   
   if updateSuccess then
