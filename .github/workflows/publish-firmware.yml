@@ -1,0 +1,133 @@
+name: Publish Firmware to GCS
+
+on:
+  push:
+    branches:
+      - '**'
+
+env:
+  PROJECT_ID: access-kit
+  BUCKET_NAME: access-kit-firmware
+  REGION: us-east4
+
+jobs:
+  publish:
+    name: Build and Upload Firmware Zip to GCS
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get branch name
+        id: branch
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          # Sanitize branch name for use in paths (replace / with -)
+          SAFE_BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/\//-/g')
+          echo "name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "safe_name=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Calculate version
+        id: version
+        run: |
+          # Get version from ak.version.json if it exists, otherwise default
+          if [ -f "ak.version.json" ]; then
+            BASE_VERSION=$(jq -r '.version // "1.0"' ak.version.json)
+          else
+            BASE_VERSION="1.0"
+          fi
+          
+          # Append build number based on commit count
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          VERSION="${BASE_VERSION}.${COMMIT_COUNT}"
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated version: $VERSION"
+
+      - name: Create firmware zip
+        uses: TheDoctor0/zip-release@0.7.1
+        with:
+          filename: autorun.zip
+          exclusions: |
+            deploy*
+            configScripts*
+            *.git*
+            .gitignore
+            README.md
+            audio.json
+            config.json
+            network.json
+            video.json
+            window.json
+            manifests/*
+
+      - name: Upload zip to GCS
+        run: |
+          BRANCH="${{ steps.branch.outputs.safe_name }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          echo "Uploading autorun.zip to gs://${{ env.BUCKET_NAME }}/${BRANCH}/"
+          
+          # Upload as autorun.zip (latest for this branch)
+          gsutil cp autorun.zip "gs://${{ env.BUCKET_NAME }}/${BRANCH}/autorun.zip"
+          
+          # Also upload versioned copy for rollback capability
+          gsutil cp autorun.zip "gs://${{ env.BUCKET_NAME }}/${BRANCH}/autorun-v${VERSION}.zip"
+          
+          echo "Uploaded firmware zip for branch ${BRANCH} at version ${VERSION}"
+
+      - name: Upload metadata to GCS
+        run: |
+          BRANCH="${{ steps.branch.outputs.safe_name }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          COMMIT="${{ github.sha }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BUCKET="${{ env.BUCKET_NAME }}"
+          
+          # Create metadata JSON
+          cat > metadata.json << EOF
+          {
+            "version": "${VERSION}",
+            "branch": "${{ steps.branch.outputs.name }}",
+            "commit": "${COMMIT}",
+            "timestamp": "${TIMESTAMP}",
+            "zipUrl": "https://storage.googleapis.com/${BUCKET}/${BRANCH}/autorun.zip"
+          }
+          EOF
+          
+          # Upload metadata
+          gsutil cp metadata.json "gs://${{ env.BUCKET_NAME }}/${BRANCH}/metadata.json"
+          
+          echo "Uploaded metadata:"
+          cat metadata.json
+
+      - name: Create version tag (main branch only)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v${VERSION}"
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Created and pushed tag: $TAG"
+          fi
