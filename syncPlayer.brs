@@ -905,7 +905,7 @@ function updateScripts()
   m.video.stop()
   
   zipUrl = m.config.syncUrl + "/api/firmware/download?tag=" + m.config.firmwareTag
-  print "Downloading firmware from " + zipUrl
+  print "Downloading firmware ..."
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
