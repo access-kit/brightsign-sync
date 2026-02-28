@@ -79,11 +79,12 @@ jobs:
         run: |
           BRANCH="${{ steps.branch.outputs.safe_name }}"
           VERSION="${{ steps.version.outputs.version }}"
+          PREFIX="brightsign/${BRANCH}"
           
-          echo "Uploading autorun.zip to gs://${{ env.BUCKET_NAME }}/${BRANCH}/"
+          echo "Uploading autorun.zip to gs://${{ env.BUCKET_NAME }}/${PREFIX}/"
           
-          gsutil cp autorun.zip "gs://${{ env.BUCKET_NAME }}/${BRANCH}/autorun.zip"
-          gsutil cp autorun.zip "gs://${{ env.BUCKET_NAME }}/${BRANCH}/autorun-v${VERSION}.zip"
+          gsutil cp autorun.zip "gs://${{ env.BUCKET_NAME }}/${PREFIX}/autorun.zip"
+          gsutil cp autorun.zip "gs://${{ env.BUCKET_NAME }}/${PREFIX}/autorun-v${VERSION}.zip"
           
           echo "Uploaded firmware zip for branch ${BRANCH} at version ${VERSION}"
 
@@ -94,6 +95,7 @@ jobs:
           COMMIT="${{ github.sha }}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           BUCKET="${{ env.BUCKET_NAME }}"
+          PREFIX="brightsign/${BRANCH}"
           
           cat > metadata.json << EOF
           {
@@ -101,11 +103,11 @@ jobs:
             "branch": "${{ steps.branch.outputs.name }}",
             "commit": "${COMMIT}",
             "timestamp": "${TIMESTAMP}",
-            "zipUrl": "https://storage.googleapis.com/${BUCKET}/${BRANCH}/autorun.zip"
+            "zipUrl": "https://storage.googleapis.com/${BUCKET}/${PREFIX}/autorun.zip"
           }
           EOF
           
-          gsutil cp metadata.json "gs://${{ env.BUCKET_NAME }}/${BRANCH}/metadata.json"
+          gsutil cp metadata.json "gs://${{ env.BUCKET_NAME }}/${PREFIX}/metadata.json"
           
           echo "Uploaded metadata:"
           cat metadata.json
