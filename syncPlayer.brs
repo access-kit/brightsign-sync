@@ -903,7 +903,7 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
+  print "Requesting firmware update from "+m.config.firmwareUrl+"/..."
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -911,32 +911,109 @@ function updateScripts()
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
-  tf99.SendBlock("Downloading new scripts.")
-  sleep(2000)
+  tf99.SendBlock("Checking for updates...")
+  sleep(1000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/git/trees/master?recursive=1")
+  
+  ' Fetch metadata to get the zip URL and version
+  print "Fetching firmware metadata..."
+  request.setUrl(m.config.firmwareUrl + "/metadata.json")
   request.asyncGetToString()
-  msg = resPort.waitMessage(2000)
-  data = ParseJSON(msg.getString()).tree
-  for each entry in data
-    path = entry.path
-    if path.inStr("/") = -1 then
-      if path.right(3) = "brs" or path="init.json" or path.left(9) = "subtitles" then
-        print("Downloading "+path+"...")
-        request.setUrl(m.config.firmwareUrl + "/"+path)
-        request.asyncGetToFile(path)
-        resPort.waitMessage(3000)
-
-      end if
+  msg = resPort.waitMessage(10000)
+  updateSuccess = true
+  
+  if msg = invalid or msg.getResponseCode() <> 200 then
+    print "Failed to fetch firmware metadata, aborting update"
+    tf99.cls()
+    tf99.sendBlock("Update failed: could not contact server")
+    sleep(3000)
+    updateSuccess = false
+  end if
+  
+  zipUrl = ""
+  firmwareVersion = ""
+  if updateSuccess then
+    firmwareData = ParseJSON(msg.getString())
+    if firmwareData = invalid or firmwareData.zipUrl = invalid then
+      print "Failed to parse firmware metadata, aborting update"
+      tf99.cls()
+      tf99.sendBlock("Update failed: invalid response")
+      sleep(3000)
+      updateSuccess = false
+    else
+      zipUrl = firmwareData.zipUrl
+      firmwareVersion = firmwareData.version
+      print "Firmware version: " + firmwareVersion
+      print "Zip URL: " + zipUrl
     end if
-  end for
-  tf99.cls()
-  tf99.sendBlock("Done downloading scripts... will now reboot.")
-  sleep(3000)
-  RebootSystem()
+  end if
+  
+  if updateSuccess then
+    tf99.cls()
+    tf99.sendBlock("Downloading firmware v" + firmwareVersion + "...")
+    print "Downloading firmware zip..."
+    
+    request.setUrl(zipUrl)
+    request.asyncGetToFile("autorun.zip.tmp")
+    msg = resPort.waitMessage(120000) ' 2 minute timeout for zip download
+    
+    if msg = invalid or msg.getResponseCode() <> 200 then
+      print "Failed to download firmware zip"
+      tf99.cls()
+      tf99.sendBlock("Update failed: download error")
+      sleep(3000)
+      updateSuccess = false
+    end if
+  end if
+  
+  if updateSuccess then
+    tf99.cls()
+    tf99.sendBlock("Installing update...")
+    print "Extracting firmware zip..."
+    
+    destPath = findStoragePath()
+    MoveFile("autorun.zip.tmp", destPath + "autorun.zip")
+    
+    package = CreateObject("roBrightPackage", destPath + "autorun.zip")
+    if package <> invalid then
+      package.SetPassword("test")
+      package.Unpack(destPath)
+      package = 0
+      
+      DeleteFile(destPath + "autorun.zip")
+      
+      tf99.cls()
+      tf99.sendBlock("Update complete. Rebooting...")
+      print "Update complete, rebooting..."
+      sleep(2000)
+      RebootSystem()
+    else
+      print "Failed to open firmware package"
+      tf99.cls()
+      tf99.sendBlock("Update failed: invalid package")
+      sleep(3000)
+      DeleteFile(destPath + "autorun.zip")
+    end if
+  end if
+end function
+
+function findStoragePath() as String
+  di = CreateObject("roDeviceInfo")
+  if not di.FirmwareIsAtLeast("7.0.60") then
+    return "SD:/"
+  end if
+  
+  storagePaths = ["SSD:", "SD:", "USB1:"]
+  for each storage in storagePaths
+    hotplug = CreateObject("roStorageHotplug")
+    if hotplug.GetStorageStatus(storage).mounted then
+      return storage + "/"
+    end if
+  next
+  return "SD:/"
 end function
 
 
