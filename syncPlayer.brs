@@ -914,7 +914,7 @@ function updateScripts()
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
   tf99.SendBlock("Downloading update...")
-  sleep(1000)
+  sleep(2000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
@@ -950,23 +950,11 @@ function updateScripts()
       package = 0
       DeleteFile(destPath + "autorun.zip")
       
-      ' Copy only script/config files from temp dir, preserving existing media
-      scriptExtensions = [".brs", ".json", ".html", ".css"]
+      ' Copy all extracted files into root without wiping files not in the package
       extracted = ListDir(tmpDir)
       for each filename in extracted
-        shouldCopy = false
-        for each ext in scriptExtensions
-          if right(filename, len(ext)) = ext then
-            shouldCopy = true
-            exit for
-          end if
-        end for
-        if shouldCopy then
-          print "Updating: " + filename
-          CopyFile(tmpDir + filename, destPath + filename)
-        else
-          print "Skipping: " + filename
-        end if
+        print "Updating: " + filename
+        CopyFile(tmpDir + filename, destPath + filename)
       end for
       
       ' Clean up temp directory
