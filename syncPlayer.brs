@@ -939,15 +939,41 @@ function updateScripts()
     print "Extracting firmware zip..."
     
     destPath = findStoragePath()
+    tmpDir = destPath + "update_tmp/"
+    CreateDirectory(tmpDir)
     MoveFile("autorun.zip.tmp", destPath + "autorun.zip")
     
     package = CreateObject("roBrightPackage", destPath + "autorun.zip")
     if package <> invalid then
       package.SetPassword("test")
-      package.Unpack(destPath)
+      package.Unpack(tmpDir)
       package = 0
-      
       DeleteFile(destPath + "autorun.zip")
+      
+      ' Copy only script/config files from temp dir, preserving existing media
+      scriptExtensions = [".brs", ".json", ".html", ".css"]
+      extracted = ListDir(tmpDir)
+      for each filename in extracted
+        shouldCopy = false
+        for each ext in scriptExtensions
+          if right(filename, len(ext)) = ext then
+            shouldCopy = true
+            exit for
+          end if
+        end for
+        if shouldCopy then
+          print "Updating: " + filename
+          CopyFile(tmpDir + filename, destPath + filename)
+        else
+          print "Skipping: " + filename
+        end if
+      end for
+      
+      ' Clean up temp directory
+      for each filename in ListDir(tmpDir)
+        DeleteFile(tmpDir + filename)
+      end for
+      DeleteDirectory(tmpDir)
       
       tf99.cls()
       tf99.sendBlock("Update complete. Rebooting...")
