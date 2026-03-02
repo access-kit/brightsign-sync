@@ -26,13 +26,9 @@ If file should be excluded from the release, add them to the `exclusions` step o
 
 Additionally, there is a file called `ak.features.json` which should be updated with any features from the official [AccessKit build](https://github.com/access-kit/access-kit) which the BrightSign release can make use of.
 
-## Player Updates
-
-`manifest.json` lists all the files that should be downloaded when a player updates its scripts via `updateScripts()`. Edit this to reflect any newly added files, renamed existing files, or removed files.
-
 ## Connecting via SSH
 
-`ssh brightsign@ip`
+`ssh brightsign@ip`g
 
 or 
 

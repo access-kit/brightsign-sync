@@ -903,7 +903,9 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
+  
+  zipUrl = m.config.syncUrl + "/api/firmware/download?tag=" + m.config.firmwareTag
+  print "Downloading firmware from " + zipUrl
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -911,60 +913,85 @@ function updateScripts()
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
-  tf99.SendBlock("Downloading updates...")
+  tf99.SendBlock("Downloading update...")
   sleep(2000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
   
-  ' Download the manifest to know which files to fetch
-  print "Downloading manifest..."
-  request.setUrl(m.config.firmwareUrl + "/manifest.json")
-  request.asyncGetToFile("manifest.json.tmp")
-  msg = resPort.waitMessage(5000)
-  manifestReady = true
+  request.setUrl(zipUrl)
+  request.asyncGetToFile("autorun.zip.tmp")
+  msg = resPort.waitMessage(120000)
+  updateSuccess = true
   
   if msg = invalid or msg.getResponseCode() <> 200 then
-    print "Failed to download manifest, aborting update"
+    print "Failed to download firmware zip"
     tf99.cls()
-    tf99.sendBlock("Update failed: could not download manifest")
+    tf99.sendBlock("Update failed: download error")
     sleep(3000)
-    manifestReady = false
+    updateSuccess = false
   end if
   
-  if manifestReady then
-    ' Parse the manifest
-    manifestData = ParseJSON(ReadAsciiFile("manifest.json.tmp"))
-    DeleteFile("manifest.json.tmp")
-    if manifestData = invalid or manifestData.files = invalid then
-      print "Failed to parse manifest, aborting update"
+  if updateSuccess then
+    tf99.cls()
+    tf99.sendBlock("Installing update...")
+    print "Extracting firmware zip..."
+    
+    destPath = findStoragePath()
+    tmpDir = destPath + "update_tmp/"
+    CreateDirectory(tmpDir)
+    MoveFile("autorun.zip.tmp", destPath + "autorun.zip")
+    
+    package = CreateObject("roBrightPackage", destPath + "autorun.zip")
+    if package <> invalid then
+      package.SetPassword("test")
+      package.Unpack(tmpDir)
+      package = 0
+      DeleteFile(destPath + "autorun.zip")
+      
+      ' Copy all extracted files into root without wiping files not in the package
+      extracted = ListDir(tmpDir)
+      for each filename in extracted
+        print "Updating: " + filename
+        CopyFile(tmpDir + filename, destPath + filename)
+      end for
+      
+      ' Clean up temp directory
+      for each filename in ListDir(tmpDir)
+        DeleteFile(tmpDir + filename)
+      end for
+      DeleteDirectory(tmpDir)
+      
       tf99.cls()
-      tf99.sendBlock("Update failed: invalid manifest")
+      tf99.sendBlock("Update complete. Rebooting...")
+      print "Update complete, rebooting..."
+      sleep(2000)
+      RebootSystem()
+    else
+      print "Failed to open firmware package"
+      tf99.cls()
+      tf99.sendBlock("Update failed: invalid package")
       sleep(3000)
-      manifestReady = false
+      DeleteFile(destPath + "autorun.zip")
     end if
   end if
-  
-  if manifestReady then
-    ' Download each file listed in the manifest
-    totalFiles = manifestData.files.count()
-    currentFile = 0
-    for each filename in manifestData.files
-      currentFile = currentFile + 1
-      print "Downloading ("+currentFile.toStr()+"/"+totalFiles.toStr()+"): "+filename
-      tf99.cls()
-      tf99.sendBlock("Downloading "+currentFile.toStr()+"/"+totalFiles.toStr()+": "+filename)
-      request.setUrl(m.config.firmwareUrl + "/" + filename)
-      request.asyncGetToFile(filename)
-      resPort.waitMessage(10000)
-    end for
-    
-    tf99.cls()
-    tf99.sendBlock("Update complete. Rebooting...")
-    sleep(2000)
-    RebootSystem()
+end function
+
+function findStoragePath() as String
+  di = CreateObject("roDeviceInfo")
+  if not di.FirmwareIsAtLeast("7.0.60") then
+    return "SD:/"
   end if
+  
+  storagePaths = ["SSD:", "SD:", "USB1:"]
+  for each storage in storagePaths
+    hotplug = CreateObject("roStorageHotplug")
+    if hotplug.GetStorageStatus(storage).mounted then
+      return storage + "/"
+    end if
+  next
+  return "SD:/"
 end function
 
 
