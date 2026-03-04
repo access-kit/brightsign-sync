@@ -28,7 +28,7 @@ Additionally, there is a file called `ak.features.json` which should be updated 
 
 ## Connecting via SSH
 
-`ssh brightsign@ip`g
+`ssh brightsign@ip`
 
 or 
 

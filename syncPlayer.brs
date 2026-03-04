@@ -267,13 +267,8 @@ function loadVideoFile()
     print("!!!! No MP4 or MOV files found !!!!")
     m.transportState = "noValidVideo"
     m.clock.state = "idle"
-    m.meta99 = CreateObject("roAssociativeArray")
-    m.meta99.AddReplace("CharWidth", 30)
-    m.meta99.AddReplace("CharHeight", 50)
-    m.meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
-    m.meta99.AddReplace("TextColor", &Hffffff) ' Yellow
-    m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
-    m.tf99.SendBlock("No valid video files found!")
+    m.tf99 = createTextBox()
+    m.tf99.sendBlock("No valid video files found!")
     sleep(5000)
   else 
     if m.video.getFilePlayability(m.config.videoPath).video <> "playable" then 
@@ -302,13 +297,8 @@ function loadVideoFile()
         print("!!!! MP4s or MOVs exist but are not playable videos !!!")
         m.transportState = "noValidVideo"
         m.clock.state = "idle"
-        m.meta99 = CreateObject("roAssociativeArray")
-        m.meta99.AddReplace("CharWidth", 30)
-        m.meta99.AddReplace("CharHeight", 50)
-        m.meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
-        m.meta99.AddReplace("TextColor", &Hffffff) ' Yellow
-        m.tf99 = CreateObject("roTextField", 10, 10, 60, 2, m.meta99)
-        m.tf99.SendBlock("No valid video files found! Provided MP4 or MOV was not valid.")
+        m.tf99 = createTextBox()
+        m.tf99.sendBlock("No valid video files found! Provided MP4 or MOV was not valid.")
         sleep(5000)
       end if
     end if
@@ -911,7 +901,7 @@ function updateScripts()
   meta99.AddReplace("CharWidth", 30)
   meta99.AddReplace("CharHeight", 50)
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
-  meta99.AddReplace("TextColor", &Hffffff) ' Yellow
+  meta99.AddReplace("TextColor", &Hffff00) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
   tf99.SendBlock("Downloading update...")
   sleep(2000)
@@ -938,23 +928,22 @@ function updateScripts()
     tf99.sendBlock("Installing update...")
     print "Extracting firmware zip..."
     
-    destPath = findStoragePath()
-    tmpDir = destPath + "update_tmp/"
+    tmpDir = "update_tmp/"
     CreateDirectory(tmpDir)
-    MoveFile("autorun.zip.tmp", destPath + "autorun.zip")
+    MoveFile("autorun.zip.tmp", "autorun.zip")
     
-    package = CreateObject("roBrightPackage", destPath + "autorun.zip")
+    package = CreateObject("roBrightPackage", "autorun.zip")
     if package <> invalid then
       package.SetPassword("test")
       package.Unpack(tmpDir)
       package = 0
-      DeleteFile(destPath + "autorun.zip")
+      DeleteFile("autorun.zip")
       
       ' Copy all extracted files into root without wiping files not in the package
       extracted = ListDir(tmpDir)
       for each filename in extracted
         print "Updating: " + filename
-        CopyFile(tmpDir + filename, destPath + filename)
+        CopyFile(tmpDir + filename, filename)
       end for
       
       ' Clean up temp directory
@@ -973,25 +962,9 @@ function updateScripts()
       tf99.cls()
       tf99.sendBlock("Update failed: invalid package")
       sleep(3000)
-      DeleteFile(destPath + "autorun.zip")
+      DeleteFile("autorun.zip")
     end if
   end if
-end function
-
-function findStoragePath() as String
-  di = CreateObject("roDeviceInfo")
-  if not di.FirmwareIsAtLeast("7.0.60") then
-    return "SD:/"
-  end if
-  
-  storagePaths = ["SSD:", "SD:", "USB1:"]
-  for each storage in storagePaths
-    hotplug = CreateObject("roStorageHotplug")
-    if hotplug.GetStorageStatus(storage).mounted then
-      return storage + "/"
-    end if
-  next
-  return "SD:/"
 end function
 
 
@@ -1001,7 +974,7 @@ function updateContent()
   meta99.AddReplace("CharWidth", 30)
   meta99.AddReplace("CharHeight", 50)
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
-  meta99.AddReplace("TextColor", &Hffffff) ' Yellow
+  meta99.AddReplace("TextColor", &Hffff00) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
 
   tf99.SendBlock("Downloading new content.")
