@@ -756,10 +756,12 @@ function updateConfig(key, value)
   print "Received a new value:", value
   
   ' Normalize volume type to avoid string/integer mismatch
-  if key = "volume"
-    if type(value) = "roString" or type(value) = "String"
-      value = cint(val(value))
-    else
+  if key = "volume" or key = "quietMode" then
+    if type(value) = "roString" or type(value) = "String" then
+      value = val(value)
+    end if
+
+    if key = "volume" then
       value = cint(value)
     end if
   end if
