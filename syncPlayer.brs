@@ -903,7 +903,9 @@ end function
 
 function updateScripts() 
   m.video.stop()
-  print "Attempting to download new scripts from "+m.config.firmwareUrl+"/..."
+  
+  zipUrl = m.config.syncUrl + "/api/firmware/download?tag=" + m.config.firmwareTag
+  print "Downloading firmware ..."
   
   meta99 = CreateObject("roAssociativeArray")
   meta99.AddReplace("CharWidth", 30)
@@ -911,32 +913,68 @@ function updateScripts()
   meta99.AddReplace("BackgroundColor", &H000000) ' Dark grey
   meta99.AddReplace("TextColor", &Hffffff) ' Yellow
   tf99 = CreateObject("roTextField", 10, 10, 60, 2, meta99)
-  tf99.SendBlock("Downloading new scripts.")
+  tf99.SendBlock("Downloading update...")
   sleep(2000)
 
   resPort = createObject("roMessagePort")
   request = createObject("roUrlTransfer")
   request.setPort(resPort)
-  request.setUrl("https://api.github.com/repos/access-kit/brightsign-sync/git/trees/master?recursive=1")
-  request.asyncGetToString()
-  msg = resPort.waitMessage(2000)
-  data = ParseJSON(msg.getString()).tree
-  for each entry in data
-    path = entry.path
-    if path.inStr("/") = -1 then
-      if path.right(3) = "brs" or path="init.json" or path.left(9) = "subtitles" then
-        print("Downloading "+path+"...")
-        request.setUrl(m.config.firmwareUrl + "/"+path)
-        request.asyncGetToFile(path)
-        resPort.waitMessage(3000)
-
-      end if
+  
+  request.setUrl(zipUrl)
+  request.asyncGetToFile("autorun.zip.tmp")
+  msg = resPort.waitMessage(120000)
+  updateSuccess = true
+  
+  if msg = invalid or msg.getResponseCode() <> 200 then
+    print "Failed to download firmware zip"
+    tf99.cls()
+    tf99.sendBlock("Update failed: download error")
+    sleep(3000)
+    updateSuccess = false
+  end if
+  
+  if updateSuccess then
+    tf99.cls()
+    tf99.sendBlock("Installing update...")
+    print "Extracting firmware zip..."
+    
+    tmpDir = "update_tmp/"
+    CreateDirectory(tmpDir)
+    MoveFile("autorun.zip.tmp", "autorun.zip")
+    
+    package = CreateObject("roBrightPackage", "autorun.zip")
+    if package <> invalid then
+      package.SetPassword("test")
+      package.Unpack(tmpDir)
+      package = 0
+      DeleteFile("autorun.zip")
+      
+      ' Copy all extracted files into root without wiping files not in the package
+      extracted = ListDir(tmpDir)
+      for each filename in extracted
+        print "Updating: " + filename
+        CopyFile(tmpDir + filename, filename)
+      end for
+      
+      ' Clean up temp directory
+      for each filename in ListDir(tmpDir)
+        DeleteFile(tmpDir + filename)
+      end for
+      DeleteDirectory(tmpDir)
+      
+      tf99.cls()
+      tf99.sendBlock("Update complete. Rebooting...")
+      print "Update complete, rebooting..."
+      sleep(2000)
+      RebootSystem()
+    else
+      print "Failed to open firmware package"
+      tf99.cls()
+      tf99.sendBlock("Update failed: invalid package")
+      sleep(3000)
+      DeleteFile("autorun.zip")
     end if
-  end for
-  tf99.cls()
-  tf99.sendBlock("Done downloading scripts... will now reboot.")
-  sleep(3000)
-  RebootSystem()
+  end if
 end function
 
 
