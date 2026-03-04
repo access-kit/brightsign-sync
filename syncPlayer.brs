@@ -754,21 +754,32 @@ end function
 function updateConfig(key, value)
   print "Received a new key:", key
   print "Received a new value:", value
-  ' TODO: Add better typesafety for other fields
-  if key = "volume"
-    if type(value) = "roString" or type(value) = "String"
-      value = cint(val(value))
-    else
-      value = cint(value)
+  
+  ' Normalize numeric fields to correct types
+  intFields = ["volume", "syncGroup", "commandPort", "startupLeaderDelay", "loopPointLeaderDelay"]
+  floatFields = ["quietMode"]
+  
+  for each field in intFields
+    if key = field
+      if type(value) = "roString" or type(value) = "String"
+        value = cint(val(value))
+      else
+        value = cint(value)
+      end if
+      exit for
     end if
-  end if
-  if key = "quietMode"
-    if type(value) = "roString" or type(value) = "String"
-      value = val(value)
-    else
-      value = int(value)
+  end for
+  
+  for each field in floatFields
+    if key = field
+      if type(value) = "roString" or type(value) = "String"
+        value = val(value)
+      else
+        value = value * 1.0
+      end if
+      exit for
     end if
-  end if
+  end for
   m.config.addReplace(key,value)
   json = FormatJSON(m.config)
   print "Saving new configuration..."
