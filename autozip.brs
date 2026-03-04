@@ -22,7 +22,7 @@ Function FindDestPath()
         return "SD:/"
     end if
 
-    destinationPaths = ["SSD:", "SD:", "USB1:"]
+    destinationPaths = ["SD:", "SSD:", "USB1:"]
     for each destination in destinationPaths
         if IsMounted(destination) then
             return destination+"/"

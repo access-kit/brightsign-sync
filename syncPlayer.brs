@@ -938,23 +938,22 @@ function updateScripts()
     tf99.sendBlock("Installing update...")
     print "Extracting firmware zip..."
     
-    destPath = findStoragePath()
-    tmpDir = destPath + "update_tmp/"
+    tmpDir = "update_tmp/"
     CreateDirectory(tmpDir)
-    MoveFile("autorun.zip.tmp", destPath + "autorun.zip")
+    MoveFile("autorun.zip.tmp", "autorun.zip")
     
-    package = CreateObject("roBrightPackage", destPath + "autorun.zip")
+    package = CreateObject("roBrightPackage", "autorun.zip")
     if package <> invalid then
       package.SetPassword("test")
       package.Unpack(tmpDir)
       package = 0
-      DeleteFile(destPath + "autorun.zip")
+      DeleteFile("autorun.zip")
       
       ' Copy all extracted files into root without wiping files not in the package
       extracted = ListDir(tmpDir)
       for each filename in extracted
         print "Updating: " + filename
-        CopyFile(tmpDir + filename, destPath + filename)
+        CopyFile(tmpDir + filename, filename)
       end for
       
       ' Clean up temp directory
@@ -973,25 +972,9 @@ function updateScripts()
       tf99.cls()
       tf99.sendBlock("Update failed: invalid package")
       sleep(3000)
-      DeleteFile(destPath + "autorun.zip")
+      DeleteFile("autorun.zip")
     end if
   end if
-end function
-
-function findStoragePath() as String
-  di = CreateObject("roDeviceInfo")
-  if not di.FirmwareIsAtLeast("7.0.60") then
-    return "SD:/"
-  end if
-  
-  storagePaths = ["SSD:", "SD:", "USB1:"]
-  for each storage in storagePaths
-    hotplug = CreateObject("roStorageHotplug")
-    if hotplug.GetStorageStatus(storage).mounted then
-      return storage + "/"
-    end if
-  next
-  return "SD:/"
 end function
 
 
