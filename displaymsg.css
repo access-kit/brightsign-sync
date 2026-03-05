@@ -1,0 +1,13 @@
+.boot-container {
+  text-align: center;
+  padding: 20px;
+}
+#boot-text {
+  font-size: 48px;
+  color: white;
+  text-shadow: black 2px 0px 15px;
+  text-align: center;
+  -webkit-text-stroke: 1px black;
+  white-space: pre-line;
+  margin: 0;
+}
