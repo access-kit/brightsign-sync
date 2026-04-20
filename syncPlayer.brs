@@ -867,6 +867,10 @@ function transportMachine()
         m.video.pause()
         m.video.seek(0)
         m.transportState = "idle"
+      else if m.config.syncMode = "gpiotriggered" then
+        m.video.pause()
+        m.video.seek(0)
+        m.transportState = "idle"
       end if
     end if
   end if
