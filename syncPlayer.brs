@@ -165,6 +165,7 @@ function createSyncPlayer(_config as Object) as Object
   else if player.config.syncMode = "solo"
     player.transportState = "starting"
   else 
+    ' follower and gpiotriggered wait for UDP start or GPIO before playing
     player.transportState = "idle"
   end if
 
@@ -322,7 +323,7 @@ function loadVideoFile()
     m.apiRequest.setUrl(m.apiEndpoint.+"/duration")
     updateDurationData = "password="+m.password+"&"
     durationWithDelay = m.duration
-    if m.config.syncMode = "leader" or m.config.syncMode = "follower" then 
+    if m.config.syncMode = "leader" or m.config.syncMode = "follower" or m.config.syncMode = "gpiotriggered" then 
       durationWithDelay = durationWithDelay + m.config.loopPointLeaderDelay
     end if
     updateDurationData = updateDurationData+"duration="+durationWithDelay.toStr()
@@ -349,7 +350,7 @@ function setupUDP()
   if m.config.syncMode = "leader" then
     m.udpSocket.joinMulticastGroup("239.192.1.0")
     m.udpSocket.joinMulticastGroup("239.192.1."+m.config.syncGroup.toStr())
-  else if m.config.syncMode = "follower" then
+  else if m.config.syncMode = "follower" or m.config.syncMode = "gpiotriggered" then
     m.udpSocket.joinMulticastGroup("239.192.2.0")
     m.udpSocket.joinMulticastGroup("239.192.2."+m.config.syncGroup.toStr())
   end if
@@ -845,7 +846,7 @@ function transportMachine()
     m.markLocalStart()
     m.transportState = "submitting timestamp"
   else if m.transportState = "submitting timestamp" then
-    if m.config.syncMode = "follower" then
+    if m.config.syncMode = "follower" or m.config.syncMode = "gpiotriggered" then
       sleep(((m.config.syncGroup+1) MOD 10)*5)
     end if
     if m.config.updateWeb = "on" then
@@ -863,7 +864,7 @@ function transportMachine()
         m.video.seek(0)
         sleep(m.config.loopPointLeaderDelay)
         m.transportState = "starting"
-      else if m.config.syncMode = "follower" then
+      else if m.config.syncMode = "follower" or m.config.syncMode = "gpiotriggered" then
         m.video.pause()
         m.video.seek(0)
         m.transportState = "idle"
