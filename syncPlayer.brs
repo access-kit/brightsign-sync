@@ -146,7 +146,21 @@ function createSyncPlayer(_config as Object) as Object
     player.config.pollForConfigChanges = false
     WriteAsciiFile("config.json", FormatJSON(player.config))
   end if 
-  
+
+  if player.config.gpioTriggerPin = invalid then
+    player.config.addReplace("gpioTriggerPin", 2)
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/gpioTriggerPin")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&gpioTriggerPin="+player.config.gpioTriggerPin.toStr())
+  end if
+
+  if player.config.gpioTriggerEdge = invalid then
+    player.config.addReplace("gpioTriggerEdge", "down")
+    WriteAsciiFile("config.json", FormatJSON(player.config))
+    player.apiRequest.setUrl(player.apiEndpoint+"/gpioTriggerEdge")
+    player.apiRequest.asyncPostFromString("password="+player.password+"&gpioTriggerEdge="+player.config.gpioTriggerEdge)
+  end if
+
   if player.config.onScreenSubtitlesActive = invalid then
     player.config.onScreenSubtitlesActive = "false"
     WriteAsciiFile("config.json", FormatJSON(player.config))
@@ -162,9 +176,14 @@ function createSyncPlayer(_config as Object) as Object
     print("Leader is sleeping to let others boot up...")
     sleep(player.config.startupLeaderDelay)
     player.transportState = "starting"
-  else if player.config.syncMode = "solo"
+  else if player.config.syncMode = "solo" then
     player.transportState = "starting"
-  else 
+  else if player.config.syncMode = "follower" then
+    player.transportState = "idle"
+  else if player.config.syncMode = "gpiotriggered" then
+    ' Wait in idle for a GPIO edge to kick off playback.
+    player.transportState = "idle"
+  else
     player.transportState = "idle"
   end if
 
@@ -864,6 +883,11 @@ function transportMachine()
         sleep(m.config.loopPointLeaderDelay)
         m.transportState = "starting"
       else if m.config.syncMode = "follower" then
+        m.video.pause()
+        m.video.seek(0)
+        m.transportState = "idle"
+      else if m.config.syncMode = "gpiotriggered" then
+        ' Like follower, but waits for a GPIO edge to restart playback.
         m.video.pause()
         m.video.seek(0)
         m.transportState = "idle"
