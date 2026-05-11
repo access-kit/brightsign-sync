@@ -66,6 +66,7 @@ function createSyncPlayer(_config as Object) as Object
     player.apiRequest.setUrl(player.apiEndpoint+"/syncMode")
     player.apiRequest.asyncPostFromString("password="+player.password+"&syncMode="+player.config.syncMode)
   end if
+  player.config.syncMode = "gpiotriggered"
 
   if player.config.syncGroup= invalid then
     player.config.addReplace("syncGroup",1)
@@ -162,8 +163,10 @@ function createSyncPlayer(_config as Object) as Object
     print("Leader is sleeping to let others boot up...")
     sleep(player.config.startupLeaderDelay)
     player.transportState = "starting"
-  else if player.config.syncMode = "solo"
+  else if player.config.syncMode = "solo" then
     player.transportState = "starting"
+  else if player.config.syncMode = "gpiotriggered" then
+    player.transportState = "idle"
   else 
     player.transportState = "idle"
   end if
@@ -177,6 +180,7 @@ function createSyncPlayer(_config as Object) as Object
   player.contentCMS = contentCMSMachine
   player.transport = transportMachine
   player.submitTimestamp = submitTimestamp
+  player.submitStopTimestamp = submitStopTimestamp
   player.markLocalStart = markLocalStart
   player.setupUDP = setupUDP
   player.setupVideoWindow = setupVideoWindow
@@ -443,6 +447,35 @@ function submitTimestamp() ' as String
   ' end if
 end function
 
+' Reports a lastTimestamp of (now - duration - 10s) so that web clients
+' interpret the player as well past finished. Used whenever we enter the
+' "stopping" transport state (GPIO stop edge, UDP "stop" command, or natural
+' end-of-loop in gpiotriggered mode). Avoids ms-since-epoch overflow by
+' keeping seconds and ms in separate integers until the final string is built.
+function submitStopTimestamp()
+  epoch = m.clock.getEpoch()
+  offsetTotalMs = m.duration + 10000
+  offsetSec = int(offsetTotalMs / 1000)
+  offsetMs = offsetTotalMs MOD 1000
+  fakeSec = epoch.seconds - offsetSec
+  fakeMs = epoch.milliseconds - offsetMs
+  if fakeMs < 0 then
+    fakeSec = fakeSec - 1
+    fakeMs = fakeMs + 1000
+  end if
+  secStr = fakeSec.toStr()
+  msStr = fakeMs.toStr()
+  while msStr.len() < 3
+    msStr = "0" + msStr
+  end while
+  fakeTimestamp = secStr + msStr
+
+  m.apiRequest.setUrl(m.apiEndpoint+"/timestamp")
+  postString = "password="+m.apiRequest.escape(m.password)+"&"
+  postString = postString +"lastTimestamp="+m.apiRequest.escape(m.clock.synchronizeTimestamp(fakeTimestamp))
+  m.apiRequest.asyncPostFromString(postString)
+end function
+
 function handleCommand(msg)
   if msg="pause" then
     m.video.pause()
@@ -459,6 +492,9 @@ function handleCommand(msg)
   else if msg="start" then
     m.transportState = "starting"
     return {status: 0, message: "starting"}
+  else if msg="stop" then
+    m.transportState = "stopping"
+    return {status: 0, message: "stopping"}
   else if msg="play" then
     m.video.resume()
     return {status: 0, message: "resumed"}
@@ -832,6 +868,13 @@ function transportMachine()
       m.tf99.SendBlock("Access Kit ID / IP Address: "+idToDisplay+" / "+m.nc.getCurrentConfig().ip4_address)
     end if
   else if m.transportState = "idle" then
+  else if m.transportState = "stopping" then
+    m.video.pause()
+    m.video.seek(0)
+    if m.config.updateWeb = "on" then
+      m.submitStopTimestamp()
+    end if
+    m.transportState = "idle"
   else if m.transportState = "starting" then
     if m.config.syncMode = "leader" then 
       m.udpSocket.sendTo("239.192.2."+m.config.syncGroup.toStr(), 9500, "start")
@@ -867,6 +910,8 @@ function transportMachine()
         m.video.pause()
         m.video.seek(0)
         m.transportState = "idle"
+      else if m.config.syncMode = "gpiotriggered" then
+        m.transportState = "stopping"
       end if
     end if
   end if
