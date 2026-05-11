@@ -66,7 +66,6 @@ function createSyncPlayer(_config as Object) as Object
     player.apiRequest.setUrl(player.apiEndpoint+"/syncMode")
     player.apiRequest.asyncPostFromString("password="+player.password+"&syncMode="+player.config.syncMode)
   end if
-  player.config.syncMode = "gpiotriggered"
 
   if player.config.syncGroup= invalid then
     player.config.addReplace("syncGroup",1)

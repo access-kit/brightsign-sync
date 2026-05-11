@@ -13,6 +13,7 @@ function createGPIOManager(parent)
   gpioManager.captionsPin = gpioConfig.captionsPin
   gpioManager.triggerPin = gpioConfig.triggerPin
   gpioManager.startEdge = gpioConfig.startEdge
+  gpioManager.stopOnOppositeEdge = gpioConfig.stopOnOppositeEdge
   if gpioManager.startEdge = "up" then
     gpioManager.startEdgeType = "roControlUp"
     gpioManager.stopEdgeType = "roControlDown"
@@ -43,6 +44,7 @@ function loadGPIOConfig()
   defaults.addReplace("captionsPin", 1)
   defaults.addReplace("triggerPin", 0)
   defaults.addReplace("startEdge", "down")
+  defaults.addReplace("stopOnOppositeEdge", true)
 
   needsWrite = false
   gpioConfig = ParseJSON(ReadAsciiFile("gpio.json"))
@@ -66,6 +68,11 @@ function loadGPIOConfig()
       gpioConfig.addReplace("startEdge", defaults.startEdge)
       needsWrite = true
     end if
+    if not isValidGPIOBoolean(gpioConfig.stopOnOppositeEdge) then
+      print("gpio.json stopOnOppositeEdge invalid; using default true.")
+      gpioConfig.addReplace("stopOnOppositeEdge", defaults.stopOnOppositeEdge)
+      needsWrite = true
+    end if
   end if
 
   if needsWrite then
@@ -82,6 +89,12 @@ function isValidGPIOPin(value)
     return false
   end if
   return value >= 0 and value <= 7
+end function
+
+function isValidGPIOBoolean(value)
+  if value = invalid then return false
+  valType = type(value)
+  return valType = "Boolean" or valType = "roBoolean"
 end function
 
 function handleGPIO()
@@ -105,7 +118,9 @@ function handleGPIO()
         print("GPIO trigger: start edge ignored (transportState='"+m.parent.transportState+"').")
       end if
     else if msgType = m.stopEdgeType then
-      if m.parent.transportState = "starting" or m.parent.transportState = "submitting timestamp" or m.parent.transportState = "waiting to finish" then
+      if not m.stopOnOppositeEdge then
+        print("GPIO trigger: stop edge on pin "+pin.toStr()+" ignored (stopOnOppositeEdge=false; momentary-button mode).")
+      else if m.parent.transportState = "starting" or m.parent.transportState = "submitting timestamp" or m.parent.transportState = "waiting to finish" then
         print("GPIO trigger: stop edge on pin "+pin.toStr()+"; moving transport to 'stopping'.")
         m.parent.transportState = "stopping"
       else

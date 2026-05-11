@@ -43,15 +43,17 @@ GPIO behavior is configured via `gpio.json`. If the file is missing or any field
 {
   "captionsPin": 1,
   "triggerPin": 0,
-  "startEdge": "down"
+  "startEdge": "down",
+  "stopOnOppositeEdge": true
 }
 ```
 
 - `captionsPin` (int, 0–7, default `1`): the on-screen captions toggle pin. A `down` edge activates captions; an `up` edge deactivates them. Only acted on outside the per-loop sync window.
 - `triggerPin` (int, 0–7, default `0`): the start/stop pin used when `syncMode` is `gpiotriggered`. Default is `0` to avoid colliding with the captions pin (`1`) and with timeline event output pins (`2`–`7`). If `triggerPin` equals `captionsPin`, the trigger is disabled and a warning is logged (captions wins).
-- `startEdge` (`"down"` | `"up"`, default `"down"`): which edge starts playback. The opposite edge stops it.
+- `startEdge` (`"down"` | `"up"`, default `"down"`): which edge starts playback. The opposite edge stops it (subject to `stopOnOppositeEdge`).
+- `stopOnOppositeEdge` (bool, default `true`): whether the opposite edge stops playback. Set to `false` for momentary-button hardware where the release should not stop the video — playback will instead run to its natural end and then return to idle, ready for the next press. Toggle-switch hardware should leave this `true`.
 
-The `stop` UDP command (sent to the player's `commandPort`) is wired equivalently to the GPIO stop edge and is useful for testing without GPIO hardware.
+The `stop` UDP command (sent to the player's `commandPort`) is wired equivalently to the GPIO stop edge and is useful for testing without GPIO hardware. The UDP `stop` command is unaffected by `stopOnOppositeEdge`.
 
 ## Connecting via SSH
 
